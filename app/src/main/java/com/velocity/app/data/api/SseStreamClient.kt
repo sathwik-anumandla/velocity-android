@@ -36,7 +36,11 @@ data class ChatStreamPayload(
     val verbosity: String = "medium"
 )
 
-class SseStreamClient(private val baseUrl: String) {
+class SseStreamClient(
+    private val baseUrl: String,
+    private val cfClientId: String = "",
+    private val cfClientSecret: String = ""
+) {
 
     private val json = Json { ignoreUnknownKeys = true }
     private val client = OkHttpClient.Builder()
@@ -48,11 +52,17 @@ class SseStreamClient(private val baseUrl: String) {
         val requestBody = json.encodeToString(ChatStreamPayload.serializer(), payload)
             .toRequestBody("application/json".toMediaType())
 
-        val request = Request.Builder()
+        val requestBuilder = Request.Builder()
             .url("${baseUrl.trimEnd('/')}/api/chat/stream")
             .post(requestBody)
             .header("Accept", "text/event-stream")
-            .build()
+
+        if (cfClientId.isNotBlank() && cfClientSecret.isNotBlank()) {
+            requestBuilder.header("CF-Access-Client-Id", cfClientId.trim())
+            requestBuilder.header("CF-Access-Client-Secret", cfClientSecret.trim())
+        }
+
+        val request = requestBuilder.build()
 
         val listener = object : EventSourceListener() {
             override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
@@ -101,7 +111,13 @@ class SseStreamClient(private val baseUrl: String) {
             }
 
             override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-                trySend(ChatStreamEvent.Error(t?.message ?: "Stream failed"))
+                val errorMsg = when {
+                    response?.code == 403 -> "Cloudflare Access Forbidden (Check Client ID and Secret)"
+                    response?.code == 404 -> "Endpoint not found on server"
+                    response != null -> "Server error HTTP ${response.code}"
+                    else -> t?.message ?: "Stream connection failed"
+                }
+                trySend(ChatStreamEvent.Error(errorMsg))
                 close(t)
             }
 

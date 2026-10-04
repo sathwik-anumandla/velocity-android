@@ -42,8 +42,7 @@ object VelocityColors {
     // Canvas & Surfaces (AMOLED Dark)
     val Canvas = Color(0xFF000000)          // Pure AMOLED black background
     val SurfaceCard = Color(0xFF141416)     // Flyouts, bottom sheets, cards
-    val SurfaceCapsule = Color(0xFF222226)  // User chat capsules, floating docks
-    val SurfaceAssistantCapsule = Color(0xFF18181C) // Assistant response capsule
+    val SurfaceCapsule = Color(0xFF1C1C1E)  // User chat capsules, floating docks
     val SurfaceElevated = Color(0xFF252528) // Interactive hover/active states, pills
     val SurfaceInput = Color(0xFF141416)    // Bottom text input container
     val SurfaceCode = Color(0xFF0D0D10)     // Code block background
@@ -99,15 +98,15 @@ Velocity operates on two distinct UI modes depending on the context:
 ### 4.1 Lifelong Main Timeline (Peer-to-Peer Capsule Mode)
 - **Role**: Everyday thinking companion, high-signal conversational turns, daily briefings.
 - **Capsule Structure**:
-  - **User Turn**: Right-aligned capsule (`max-width: 82%`), rounded corners (`20dp`), background `#222226`, white text.
-  - **Assistant Turn**: Left-aligned capsule (`max-width: 82%`), rounded corners (`20dp`), background `#18181C`, text `#D4D4D8`.
+  - **User Turn**: Right-aligned capsule (`max-width: 82%`), rounded corners (`20dp`), background `#1E1E22`, white text.
+  - **Assistant Turn**: Left-aligned capsule (`max-width: 82%`), rounded corners (`20dp`), background `#121214`, text `#D4D4D8`.
   - **Tight Vertical Rhythm**: Reduced spacing between request and response (`6dp` between turn pairs, `12dp` between distinct conversational blocks).
 - **Turn Arrival**: Delivered atomically. While streaming, display a subtle 3-dot pulsing typing indicator inside a compact capsule before the complete response lands.
 
 ### 4.2 Dedicated Thread Workspace (Deep Engineering Mode)
 - **Role**: Multi-step debugging, architectural RFC generation, long code implementations.
-- **Layout**: Left-aligned wide capsule (`max-width: 92%`), rounded corners (`20dp`), background `#18181C`.
-- **Streaming**: Real-time incremental token rendering inside capsule, live thinking pulse indicator, full syntax-highlighted code blocks with copy action.
+- **Layout**: Full-width prose, edge-to-edge reading canvas without bubble constraints.
+- **Streaming**: Real-time incremental token rendering, live reasoning status indicator, full syntax-highlighted code blocks with copy action.
 
 ---
 

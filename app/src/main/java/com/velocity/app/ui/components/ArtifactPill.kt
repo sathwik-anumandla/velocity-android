@@ -4,18 +4,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.velocity.app.ui.theme.SatoshiFontFamily
 import com.velocity.app.ui.theme.VelocityColors
 
 @Composable
@@ -28,7 +29,7 @@ fun ArtifactPill(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(VelocityColors.SurfaceCard)
+            .background(Color(0xFF141416))
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -38,13 +39,13 @@ fun ArtifactPill(
             modifier = Modifier
                 .size(38.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(VelocityColors.AccentEmeraldBg),
+                .background(Color(0x2234D399)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Description,
+                painter = painterResource(LucideIcons.Documents),
                 contentDescription = null,
-                tint = VelocityColors.AccentEmerald,
+                tint = Color(0xFF34D399),
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -53,6 +54,7 @@ fun ArtifactPill(
             Text(
                 text = title,
                 fontSize = 14.sp,
+                fontFamily = SatoshiFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 color = VelocityColors.TextPrimary,
                 maxLines = 1,
@@ -61,6 +63,7 @@ fun ArtifactPill(
             Text(
                 text = "Artifact",
                 fontSize = 12.sp,
+                fontFamily = SatoshiFontFamily,
                 fontWeight = FontWeight.Medium,
                 color = VelocityColors.TextMuted
             )

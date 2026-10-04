@@ -3,7 +3,9 @@ package com.velocity.app.data.api
 import com.velocity.app.data.model.ArtifactItem
 import com.velocity.app.data.model.ChatMessage
 import com.velocity.app.data.model.ThreadItem
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -13,7 +15,7 @@ interface VelocityApiService {
     suspend fun getMainMessages(): Response<List<ChatMessage>>
 
     @GET("api/threads")
-    suspend fun getThreads(): Response<List<ThreadItem>>
+    suspend fun getThreads(): Response<ResponseBody>
 
     @POST("api/threads")
     suspend fun createThread(@Body payload: CreateThreadRequest): Response<ThreadItem>
@@ -25,10 +27,16 @@ interface VelocityApiService {
     suspend fun concludeThread(@Path("id") threadId: String): Response<Map<String, String>>
 
     @GET("api/artifacts")
-    suspend fun getArtifacts(): Response<List<ArtifactItem>>
+    suspend fun getArtifacts(): Response<ResponseBody>
 
     @GET("api/artifacts/{id}")
     suspend fun getArtifact(@Path("id") id: String): Response<ArtifactItem>
+
+    @GET("api/navigation/chronology")
+    suspend fun getChronology(@Query("limit") limit: Int = 50): Response<ResponseBody>
+
+    @GET("search")
+    suspend fun searchMessages(@Query("q") query: String): Response<List<SearchResultItem>>
 
     @POST("api/actions/{id}/respond")
     suspend fun respondAction(
@@ -43,11 +51,29 @@ interface VelocityApiService {
 @Serializable
 data class CreateThreadRequest(
     val name: String,
-    val parent_session_id: String = "main",
-    val originating_user_prompt: String? = null
+    @SerialName("parent_session_id") val parentSessionId: String = "main",
+    @SerialName("originating_user_prompt") val originatingUserPrompt: String? = null
 )
 
 @Serializable
 data class ActionResponseRequest(
     val action: String // "confirm" or "decline"
+)
+
+@Serializable
+data class SearchResultItem(
+    @SerialName("session_id") val sessionId: String = "main",
+    @SerialName("session_name") val sessionName: String? = null,
+    val content: String = "",
+    val snippet: String? = null,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class ChronologyItem(
+    val type: String = "event",
+    val title: String = "",
+    val description: String? = null,
+    val timestamp: String? = null,
+    val metadata: Map<String, String>? = null
 )

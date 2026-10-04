@@ -1,14 +1,14 @@
 package com.velocity.app.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,11 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.velocity.app.ui.theme.SatoshiFontFamily
 import com.velocity.app.ui.theme.VelocityColors
+import com.velocity.app.ui.util.VelocityHaptics
 
 @Composable
 fun InputCapsule(
@@ -32,11 +36,13 @@ fun InputCapsule(
     onOptionsClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(26.dp))
-            .background(VelocityColors.SurfaceInput)
+            .background(Color(0xFF161618))
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -46,54 +52,76 @@ fun InputCapsule(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(VelocityColors.SurfaceCapsule)
-                .clickable { onOptionsClick?.invoke() },
+                .background(Color(0xFF222226))
+                .clickable {
+                    VelocityHaptics.lightClick(context)
+                    onOptionsClick?.invoke()
+                },
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Add,
+                painter = painterResource(LucideIcons.Plus),
                 contentDescription = "Options",
                 tint = VelocityColors.TextSecondary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
 
-        // Text Field
-        Box(modifier = Modifier.weight(1f)) {
+        // Text Field Container
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = 4.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
             if (value.isEmpty()) {
                 Text(
                     text = placeholder,
                     color = VelocityColors.TextMuted,
                     fontSize = 15.sp,
+                    fontFamily = SatoshiFontFamily,
                     fontWeight = FontWeight.Medium
                 )
             }
             BasicTextField(
                 value = value,
-                onValueChange = onValueChange,
+                onValueChange = {
+                    if (it.length > value.length && it.length % 5 == 0) {
+                        VelocityHaptics.subtleTick(context)
+                    }
+                    onValueChange(it)
+                },
                 textStyle = TextStyle(
                     color = VelocityColors.TextPrimary,
                     fontSize = 15.sp,
+                    fontFamily = SatoshiFontFamily,
                     fontWeight = FontWeight.Medium
                 ),
                 cursorBrush = SolidColor(VelocityColors.AccentSky),
-                maxLines = 5,
+                maxLines = 6,
                 modifier = Modifier.fillMaxWidth()
             )
         }
 
         // Send Button
-        if (value.isNotBlank()) {
+        AnimatedVisibility(
+            visible = value.isNotBlank(),
+            enter = scaleIn(),
+            exit = scaleOut()
+        ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(Color.White)
-                    .clickable { onSend() },
+                    .clickable {
+                        VelocityHaptics.success(context)
+                        onSend()
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowUpward,
+                    painter = painterResource(LucideIcons.ArrowUp),
                     contentDescription = "Send",
                     tint = Color.Black,
                     modifier = Modifier.size(18.dp)

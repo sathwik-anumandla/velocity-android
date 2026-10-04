@@ -1,10 +1,13 @@
 package com.velocity.app.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -13,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.velocity.app.data.model.ChatMessage
+import com.velocity.app.ui.theme.SatoshiFontFamily
 import com.velocity.app.ui.theme.VelocityColors
 
 @Composable
@@ -81,7 +85,7 @@ fun ChatCapsule(
                 modifier = Modifier
                     .widthIn(max = 320.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(if (isUser) VelocityColors.SurfaceCapsule else VelocityColors.SurfaceAssistantCapsule)
+                    .background(if (isUser) Color(0xFF1E1E22) else Color(0xFF141416))
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Column {
@@ -91,13 +95,86 @@ fun ChatCapsule(
 
                     Text(
                         text = displayContent,
+                        fontFamily = SatoshiFontFamily,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
                         lineHeight = 22.sp,
-                        color = if (isUser) VelocityColors.TextPrimary else VelocityColors.TextSecondary
+                        color = if (isUser) Color.White else Color(0xFFD4D4D8)
                     )
                 }
             }
+        } else if (message.isStreaming && !isUser) {
+            // Typing Indicator Bubble while awaiting first token
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFF141416))
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                BouncingDotsIndicator()
+            }
         }
+    }
+}
+
+@Composable
+fun BouncingDotsIndicator() {
+    val transition = rememberInfiniteTransition(label = "dots")
+
+    val dot1Offset by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = -6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, easing = EaseInOutQuad),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "d1"
+    )
+
+    val dot2Offset by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = -6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, delayMillis = 150, easing = EaseInOutQuad),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "d2"
+    )
+
+    val dot3Offset by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = -6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, delayMillis = 300, easing = EaseInOutQuad),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "d3"
+    )
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(y = dot1Offset.dp)
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFA1A1AA))
+        )
+        Box(
+            modifier = Modifier
+                .offset(y = dot2Offset.dp)
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFA1A1AA))
+        )
+        Box(
+            modifier = Modifier
+                .offset(y = dot3Offset.dp)
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFA1A1AA))
+        )
     }
 }

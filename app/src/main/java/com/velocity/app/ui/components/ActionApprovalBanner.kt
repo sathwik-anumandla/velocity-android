@@ -4,8 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,10 +11,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.velocity.app.ui.theme.SatoshiFontFamily
 import com.velocity.app.ui.theme.VelocityColors
 
 @Composable
@@ -31,7 +31,7 @@ fun ActionApprovalBanner(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(VelocityColors.SurfaceCard)
+            .background(Color(0xFF161618))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -45,13 +45,13 @@ fun ActionApprovalBanner(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(VelocityColors.AccentAmberBg),
+                    .background(Color(0x26F59E0B)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    painter = painterResource(LucideIcons.ArrowUp),
                     contentDescription = null,
-                    tint = VelocityColors.AccentAmber,
+                    tint = Color(0xFFF59E0B),
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -59,6 +59,7 @@ fun ActionApprovalBanner(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
+                    fontFamily = SatoshiFontFamily,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = VelocityColors.TextPrimary,
@@ -67,6 +68,7 @@ fun ActionApprovalBanner(
                 )
                 Text(
                     text = subtitle,
+                    fontFamily = SatoshiFontFamily,
                     fontSize = 11.sp,
                     color = VelocityColors.TextMuted,
                     maxLines = 1,
@@ -87,6 +89,7 @@ fun ActionApprovalBanner(
             ) {
                 Text(
                     text = "Decline",
+                    fontFamily = SatoshiFontFamily,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = VelocityColors.TextMuted
@@ -102,6 +105,7 @@ fun ActionApprovalBanner(
             ) {
                 Text(
                     text = "Approve",
+                    fontFamily = SatoshiFontFamily,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black

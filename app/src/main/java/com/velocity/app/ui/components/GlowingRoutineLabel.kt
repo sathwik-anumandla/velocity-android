@@ -33,6 +33,7 @@ fun GlowingRoutineLabel(
     Text(
         text = label,
         style = TextStyle(
+            fontFamily = com.velocity.app.ui.theme.SatoshiFontFamily,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp,

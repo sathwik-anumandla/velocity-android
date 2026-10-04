@@ -14,40 +14,81 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 data class TimelineUiState(
+    val currentSessionId: String = "main",
+    val sessionTitle: String = "velocity",
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
     val isStreaming: Boolean = false,
     val streamingStatus: String? = null,
+    val isBackendOnline: Boolean = true,
     val activeProposal: ThreadProposal? = null,
     val pendingAction: StagedAction? = null,
     val error: String? = null
 )
 
-class TimelineViewModel(
-    private val repository: ChatRepository = ChatRepository()
-) : ViewModel() {
+class TimelineViewModel : ViewModel() {
+
+    private var repository: ChatRepository? = null
 
     private val _uiState = MutableStateFlow(TimelineUiState())
     val uiState: StateFlow<TimelineUiState> = _uiState.asStateFlow()
 
-    init {
+    fun initRepository(repo: ChatRepository) {
+        this.repository = repo
+        loadMessages()
+        checkHealth()
+    }
+
+    fun checkHealth() {
+        val repo = repository ?: return
+        viewModelScope.launch {
+            val result = repo.testConnection()
+            _uiState.value = _uiState.value.copy(isBackendOnline = result.isSuccess)
+        }
+    }
+
+    fun switchSession(sessionId: String, title: String? = null) {
+        val newTitle = if (sessionId == "main") "velocity" else (title ?: "Thread")
+        _uiState.value = _uiState.value.copy(
+            currentSessionId = sessionId,
+            sessionTitle = newTitle,
+            messages = emptyList(),
+            isLoading = true
+        )
         loadMessages()
     }
 
     fun loadMessages() {
+        val repo = repository ?: return
+        val sessionId = _uiState.value.currentSessionId
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val msgs = repository.fetchMainMessages()
-                _uiState.value = _uiState.value.copy(messages = msgs, isLoading = false)
+                val msgs = if (sessionId == "main") {
+                    repo.fetchMainMessages()
+                } else {
+                    repo.fetchThreadMessages(sessionId)
+                }
+                _uiState.value = _uiState.value.copy(
+                    messages = msgs,
+                    isLoading = false,
+                    isBackendOnline = true
+                )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
+                _uiState.value = _uiState.value.copy(
+                    error = e.message,
+                    isLoading = false,
+                    isBackendOnline = false
+                )
             }
         }
     }
 
     fun sendMessage(text: String) {
         if (text.isBlank()) return
+        val repo = repository ?: return
+        val sessionId = _uiState.value.currentSessionId
 
         val userMsgId = UUID.randomUUID().toString()
         val asstMsgId = UUID.randomUUID().toString()
@@ -63,7 +104,7 @@ class TimelineViewModel(
 
         viewModelScope.launch {
             try {
-                repository.streamTurn(message = text, sessionId = "main").collect { event ->
+                repo.streamTurn(message = text, sessionId = sessionId).collect { event ->
                     when (event) {
                         is ChatStreamEvent.Status -> {
                             _uiState.value = _uiState.value.copy(streamingStatus = event.text)
@@ -115,10 +156,11 @@ class TimelineViewModel(
     }
 
     fun respondAction(confirm: Boolean) {
+        val repo = repository ?: return
         val action = _uiState.value.pendingAction ?: return
         viewModelScope.launch {
             try {
-                repository.respondAction(action.id, confirm)
+                repo.respondAction(action.id, confirm)
                 _uiState.value = _uiState.value.copy(pendingAction = null)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
