@@ -380,8 +380,11 @@ fun MainTimelineScreen(
                     exit = fadeOut()
                 ) {
                     uiState.pendingAction?.let { action ->
+                        val target = action.parameters["subject"]?.toString()?.trim('"')
+                            ?: action.parameters["to"]?.toString()?.trim('"')
+                            ?: "Approval"
                         ActionApprovalBanner(
-                            title = "${action.actionType.replace('_', ' ').uppercase()}: ${action.parameters["subject"] ?: action.parameters["to"] ?: "Approval"}",
+                            title = "${action.actionType.replace('_', ' ').uppercase()}: $target",
                             onDecline = {
                                 VelocityHaptics.error(context)
                                 viewModel.respondAction(confirm = false)

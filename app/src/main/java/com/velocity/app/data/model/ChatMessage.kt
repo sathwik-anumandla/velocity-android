@@ -3,6 +3,8 @@ package com.velocity.app.data.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+import kotlinx.serialization.json.JsonElement
+
 @Serializable
 data class ChatMessage(
     val id: String,
@@ -29,6 +31,7 @@ data class ThreadProposal(
 data class StagedAction(
     val id: String,
     @SerialName("action_type") val actionType: String,
-    val parameters: Map<String, String> = emptyMap(),
+    val parameters: Map<String, JsonElement> = emptyMap(),
     val status: String = "pending"
 )
+
