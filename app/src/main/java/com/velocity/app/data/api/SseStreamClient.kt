@@ -33,8 +33,9 @@ data class ChatStreamPayload(
     val session_id: String = "main",
     val model: String? = null,
     val thinking_effort: String = "medium",
-    val verbosity: String = "medium"
+    val verbosity: String = "low"
 )
+
 
 class SseStreamClient(
     private val baseUrl: String,

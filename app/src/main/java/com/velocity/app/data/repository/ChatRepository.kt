@@ -4,13 +4,23 @@ import com.velocity.app.data.api.ActionResponseRequest
 import com.velocity.app.data.api.ChatStreamEvent
 import com.velocity.app.data.api.ChatStreamPayload
 import com.velocity.app.data.api.ChronologyItem
+import com.velocity.app.data.api.CreateScheduleRequest
+import com.velocity.app.data.api.ProposalRespondRequest
+import com.velocity.app.data.api.SaveDocRequest
 import com.velocity.app.data.api.SearchResultItem
 import com.velocity.app.data.api.SseStreamClient
+import com.velocity.app.data.api.UpdateScheduleRequest
+import com.velocity.app.data.api.UpdateSkillRequest
 import com.velocity.app.data.api.VelocityApiService
 import com.velocity.app.data.model.ArtifactItem
 import com.velocity.app.data.model.ChatMessage
+import com.velocity.app.data.model.GoogleWorkspaceStatus
+import com.velocity.app.data.model.ScheduledRoutine
+import com.velocity.app.data.model.SkillRecord
 import com.velocity.app.data.model.ThreadItem
+import com.velocity.app.data.model.VaultTreeItem
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
@@ -21,6 +31,7 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
+
 
 class ChatRepository(private val config: ServerConfig) {
 
@@ -183,48 +194,172 @@ class ChatRepository(private val config: ServerConfig) {
     }
 
     suspend fun fetchIntegrationStatus(): Map<String, Boolean> {
+        val status = fetchGoogleStatus()
+        return mapOf(
+            "google_calendar" to status.connected,
+            "google_tasks" to status.connected,
+            "gmail" to status.connected
+        )
+    }
+
+    suspend fun fetchGoogleStatus(): GoogleWorkspaceStatus {
         return try {
             val res = api.getIntegrationStatus()
-            if (!res.isSuccessful) return emptyMap()
-            val raw = res.body()?.string() ?: return emptyMap()
-            val element = json.parseToJsonElement(raw)
-            if (element is kotlinx.serialization.json.JsonObject) {
-                element.jsonObject.mapValues { (_, v) ->
-                    v.jsonPrimitive.content.toBooleanStrictOrNull() ?: false
-                }
-            } else emptyMap()
+            if (!res.isSuccessful) return GoogleWorkspaceStatus()
+            val raw = res.body()?.string() ?: return GoogleWorkspaceStatus()
+            json.decodeFromString<GoogleWorkspaceStatus>(raw)
         } catch (_: Exception) {
-            emptyMap()
+            GoogleWorkspaceStatus()
         }
     }
 
-    suspend fun fetchSchedules(): List<Map<String, String>> {
+    suspend fun disconnectGoogle(): Boolean {
+        return try {
+            val res = api.disconnectGoogle()
+            res.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun fetchVaultTree(): List<VaultTreeItem> {
+        return try {
+            val res = api.getVaultTree()
+            if (!res.isSuccessful) return emptyList()
+            val raw = res.body()?.string() ?: return emptyList()
+            val element = json.parseToJsonElement(raw)
+            if (element is kotlinx.serialization.json.JsonObject && element.containsKey("tree")) {
+                json.decodeFromJsonElement<List<VaultTreeItem>>(element.jsonObject["tree"]!!)
+            } else if (element is kotlinx.serialization.json.JsonArray) {
+                json.decodeFromJsonElement<List<VaultTreeItem>>(element)
+            } else emptyList()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    suspend fun fetchVaultDoc(path: String): String {
+        return try {
+            val res = api.getMemoryDoc(path)
+            if (!res.isSuccessful) return ""
+            val raw = res.body()?.string() ?: return ""
+            val element = json.parseToJsonElement(raw)
+            if (element is kotlinx.serialization.json.JsonObject && element.containsKey("content")) {
+                element.jsonObject["content"]?.jsonPrimitive?.content ?: ""
+            } else raw
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    suspend fun saveVaultDoc(path: String, content: String): Boolean {
+        return try {
+            val res = api.saveMemoryDoc(SaveDocRequest(path = path, content = content))
+            res.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun fetchSchedules(): List<ScheduledRoutine> {
         return try {
             val res = api.getSchedules()
             if (!res.isSuccessful) return emptyList()
             val raw = res.body()?.string() ?: return emptyList()
             val element = json.parseToJsonElement(raw)
             if (element is kotlinx.serialization.json.JsonArray) {
-                element.mapNotNull { it as? kotlinx.serialization.json.JsonObject }
-                    .map { obj -> obj.mapValues { it.value.jsonPrimitive.content } }
+                json.decodeFromJsonElement<List<ScheduledRoutine>>(element)
             } else emptyList()
         } catch (_: Exception) {
             emptyList()
         }
     }
 
-    suspend fun fetchSkills(): List<Map<String, String>> {
+    suspend fun createSchedule(
+        name: String,
+        eventType: String,
+        prompt: String,
+        cronExpression: String? = null,
+        runAt: String? = null
+    ): Boolean {
+        return try {
+            val res = api.createSchedule(
+                CreateScheduleRequest(
+                    name = name,
+                    eventType = eventType,
+                    prompt = prompt,
+                    cronExpression = cronExpression,
+                    runAt = runAt,
+                    sessionId = "main"
+                )
+            )
+            res.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun toggleSchedule(id: String, active: Boolean): Boolean {
+        return try {
+            val nextStatus = if (active) "active" else "paused"
+            val res = api.updateSchedule(id, UpdateScheduleRequest(status = nextStatus))
+            res.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun deleteSchedule(id: String): Boolean {
+        return try {
+            val res = api.deleteSchedule(id)
+            res.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun fetchSkills(): List<SkillRecord> {
         return try {
             val res = api.getSkills()
             if (!res.isSuccessful) return emptyList()
             val raw = res.body()?.string() ?: return emptyList()
             val element = json.parseToJsonElement(raw)
             if (element is kotlinx.serialization.json.JsonArray) {
-                element.mapNotNull { it as? kotlinx.serialization.json.JsonObject }
-                    .map { obj -> obj.mapValues { it.value.jsonPrimitive.content } }
+                json.decodeFromJsonElement<List<SkillRecord>>(element)
             } else emptyList()
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    suspend fun toggleSkill(id: String, enabled: Boolean): Boolean {
+        return try {
+            val res = api.updateSkill(id, UpdateSkillRequest(enabled = enabled))
+            res.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun updateSkillInstructions(id: String, instructions: String): Boolean {
+        return try {
+            val res = api.updateSkill(id, UpdateSkillRequest(instructions = instructions))
+            res.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun respondProposal(messageId: String, accept: Boolean): Boolean {
+        return try {
+            val res = api.respondThreadProposal(
+                messageId = messageId,
+                payload = ProposalRespondRequest(if (accept) "accept" else "decline")
+            )
+            res.isSuccessful
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -241,7 +376,7 @@ class ChatRepository(private val config: ServerConfig) {
         sessionId: String = "main",
         model: String? = null,
         thinkingEffort: String = "medium",
-        verbosity: String = "medium"
+        verbosity: String = "low"
     ): Flow<ChatStreamEvent> {
         return sseClient.streamChat(
             ChatStreamPayload(
@@ -254,3 +389,4 @@ class ChatRepository(private val config: ServerConfig) {
         )
     }
 }
+

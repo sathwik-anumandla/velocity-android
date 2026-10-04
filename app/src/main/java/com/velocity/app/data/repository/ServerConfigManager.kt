@@ -27,9 +27,9 @@ data class ServerConfig(
 
 @Serializable
 data class ModelConfig(
-    val model: String = "gpt-5",
-    val thinkingEffort: String = "medium", // low, medium, high
-    val verbosity: String = "medium",      // concise, medium, exhaustive
+    val model: String = "gpt-5.4-mini",
+    val thinkingEffort: String = "medium", // none, low, medium, high, max
+    val verbosity: String = "low",         // low, medium, high
     val recallBudget: String = "medium"    // low, medium, high
 )
 
@@ -78,11 +78,12 @@ object ServerConfigManager {
     fun loadModelConfig(context: Context): ModelConfig {
         val prefs = getPrefs(context)
         return ModelConfig(
-            model = prefs.getString(KEY_MODEL, "gpt-5") ?: "gpt-5",
+            model = prefs.getString(KEY_MODEL, "gpt-5.4-mini") ?: "gpt-5.4-mini",
             thinkingEffort = prefs.getString(KEY_THINKING_EFFORT, "medium") ?: "medium",
-            verbosity = prefs.getString(KEY_VERBOSITY, "medium") ?: "medium",
+            verbosity = prefs.getString(KEY_VERBOSITY, "low") ?: "low",
             recallBudget = prefs.getString(KEY_RECALL_BUDGET, "medium") ?: "medium"
         )
+
     }
 
     fun saveModelConfig(context: Context, config: ModelConfig) {

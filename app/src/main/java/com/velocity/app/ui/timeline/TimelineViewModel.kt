@@ -22,6 +22,7 @@ data class TimelineUiState(
     val streamingStatus: String? = null,
     val isBackendOnline: Boolean = true,
     val activeProposal: ThreadProposal? = null,
+    val activeProposalMessageId: String? = null,
     val pendingAction: StagedAction? = null,
     val error: String? = null
 )
@@ -53,6 +54,9 @@ class TimelineViewModel : ViewModel() {
             currentSessionId = sessionId,
             sessionTitle = newTitle,
             messages = emptyList(),
+            pendingAction = null,
+            activeProposal = null,
+            activeProposalMessageId = null,
             isLoading = true
         )
         loadMessages()
@@ -70,8 +74,15 @@ class TimelineViewModel : ViewModel() {
                 } else {
                     repo.fetchThreadMessages(sessionId)
                 }
+
+                val pendingAct = msgs.findLast { it.stagedAction != null && it.stagedAction.status == "pending" }?.stagedAction
+                val pendingPropMsg = msgs.findLast { it.threadProposal != null && it.threadProposal.status == "pending" }
+
                 _uiState.value = _uiState.value.copy(
                     messages = msgs,
+                    pendingAction = pendingAct,
+                    activeProposal = pendingPropMsg?.threadProposal,
+                    activeProposalMessageId = pendingPropMsg?.id,
                     isLoading = false,
                     isBackendOnline = true
                 )
@@ -87,9 +98,9 @@ class TimelineViewModel : ViewModel() {
 
     fun sendMessage(
         text: String,
-        model: String? = null,
+        model: String? = "gpt-5.4-mini",
         thinkingEffort: String = "medium",
-        verbosity: String = "medium"
+        verbosity: String = "low"
     ) {
         if (text.isBlank()) return
         val repo = repository ?: return
@@ -112,7 +123,7 @@ class TimelineViewModel : ViewModel() {
                 repo.streamTurn(
                     message = text,
                     sessionId = sessionId,
-                    model = model,
+                    model = model ?: "gpt-5.4-mini",
                     thinkingEffort = thinkingEffort,
                     verbosity = verbosity
                 ).collect { event ->
@@ -124,7 +135,10 @@ class TimelineViewModel : ViewModel() {
                             updateAssistantMessage(asstMsgId) { it.copy(content = it.content + event.text) }
                         }
                         is ChatStreamEvent.Proposal -> {
-                            _uiState.value = _uiState.value.copy(activeProposal = event.proposal)
+                            _uiState.value = _uiState.value.copy(
+                                activeProposal = event.proposal,
+                                activeProposalMessageId = asstMsgId
+                            )
                             updateAssistantMessage(asstMsgId) { it.copy(threadProposal = event.proposal) }
                         }
                         is ChatStreamEvent.ArtifactCreated -> {
@@ -135,16 +149,18 @@ class TimelineViewModel : ViewModel() {
                             updateAssistantMessage(asstMsgId) { it.copy(stagedAction = event.action) }
                         }
                         is ChatStreamEvent.Complete -> {
+                            val finalMsgId = event.messageId ?: asstMsgId
                             updateAssistantMessage(asstMsgId) {
                                 it.copy(
-                                    id = event.messageId ?: it.id,
+                                    id = finalMsgId,
                                     content = if (event.text.isNotEmpty()) event.text else it.content,
                                     isStreaming = false
                                 )
                             }
                             _uiState.value = _uiState.value.copy(
                                 isStreaming = false,
-                                streamingStatus = null
+                                streamingStatus = null,
+                                activeProposalMessageId = if (_uiState.value.activeProposal != null) finalMsgId else _uiState.value.activeProposalMessageId
                             )
                         }
                         is ChatStreamEvent.Error -> {
@@ -161,7 +177,14 @@ class TimelineViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isStreaming = false, error = e.message)
+                updateAssistantMessage(asstMsgId) {
+                    it.copy(content = it.content.ifEmpty { "[Connection Error]: ${e.message}" }, isStreaming = false)
+                }
+                _uiState.value = _uiState.value.copy(
+                    isStreaming = false,
+                    streamingStatus = null,
+                    error = e.message
+                )
             }
         }
     }
@@ -173,6 +196,21 @@ class TimelineViewModel : ViewModel() {
             try {
                 repo.respondAction(action.id, confirm)
                 _uiState.value = _uiState.value.copy(pendingAction = null)
+                loadMessages()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    fun respondProposal(accept: Boolean) {
+        val repo = repository ?: return
+        val msgId = _uiState.value.activeProposalMessageId ?: return
+        viewModelScope.launch {
+            try {
+                repo.respondProposal(msgId, accept)
+                _uiState.value = _uiState.value.copy(activeProposal = null, activeProposalMessageId = null)
+                loadMessages()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
@@ -185,3 +223,4 @@ class TimelineViewModel : ViewModel() {
         )
     }
 }
+

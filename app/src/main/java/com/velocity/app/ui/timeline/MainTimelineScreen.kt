@@ -373,18 +373,37 @@ fun MainTimelineScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Pending Staged Action Banner
+                // 1. Thread Proposal Banner
+                AnimatedVisibility(
+                    visible = uiState.activeProposal != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    uiState.activeProposal?.let { prop ->
+                        ProposalApprovalCard(
+                            title = prop.title,
+                            reason = prop.reason,
+                            onDecline = {
+                                VelocityHaptics.error(context)
+                                viewModel.respondProposal(accept = false)
+                            },
+                            onApprove = {
+                                VelocityHaptics.success(context)
+                                viewModel.respondProposal(accept = true)
+                            }
+                        )
+                    }
+                }
+
+                // 2. Pending Staged Action Banner (Gmail)
                 AnimatedVisibility(
                     visible = uiState.pendingAction != null,
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
                     uiState.pendingAction?.let { action ->
-                        val target = action.parameters["subject"]?.toString()?.trim('"')
-                            ?: action.parameters["to"]?.toString()?.trim('"')
-                            ?: "Approval"
-                        ActionApprovalBanner(
-                            title = "${action.actionType.replace('_', ' ').uppercase()}: $target",
+                        ActionApprovalCard(
+                            action = action,
                             onDecline = {
                                 VelocityHaptics.error(context)
                                 viewModel.respondAction(confirm = false)
@@ -396,6 +415,7 @@ fun MainTimelineScreen(
                         )
                     }
                 }
+
 
                 // Pure Floating Input Capsule
                 InputCapsule(

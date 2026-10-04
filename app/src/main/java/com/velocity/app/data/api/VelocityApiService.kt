@@ -62,9 +62,66 @@ interface VelocityApiService {
         @Body payload: ActionResponseRequest
     ): Response<Map<String, String>>
 
+    @GET("api/memory/doc")
+    suspend fun getMemoryDoc(@Query("path") path: String): Response<ResponseBody>
+
+    @PUT("api/memory/doc")
+    suspend fun saveMemoryDoc(@Body payload: SaveDocRequest): Response<ResponseBody>
+
+    @POST("api/schedules")
+    suspend fun createSchedule(@Body payload: CreateScheduleRequest): Response<ResponseBody>
+
+    @PATCH("api/schedules/{id}")
+    suspend fun updateSchedule(@Path("id") id: String, @Body payload: UpdateScheduleRequest): Response<ResponseBody>
+
+    @DELETE("api/schedules/{id}")
+    suspend fun deleteSchedule(@Path("id") id: String): Response<ResponseBody>
+
+    @PATCH("api/skills/{id}")
+    suspend fun updateSkill(@Path("id") id: String, @Body payload: UpdateSkillRequest): Response<ResponseBody>
+
+    @POST("api/threads/proposals/{message_id}/respond")
+    suspend fun respondThreadProposal(
+        @Path("message_id") messageId: String,
+        @Body payload: ProposalRespondRequest
+    ): Response<ResponseBody>
+
+    @POST("api/auth/google/disconnect")
+    suspend fun disconnectGoogle(): Response<ResponseBody>
+
     @GET("health")
     suspend fun getHealth(): Response<Map<String, String>>
 }
+
+@Serializable
+data class SaveDocRequest(val path: String, val content: String)
+
+@Serializable
+data class CreateScheduleRequest(
+    val name: String,
+    @SerialName("event_type") val eventType: String,
+    val prompt: String,
+    @SerialName("cron_expression") val cronExpression: String? = null,
+    @SerialName("run_at") val runAt: String? = null,
+    @SerialName("session_id") val sessionId: String = "main"
+)
+
+@Serializable
+data class UpdateScheduleRequest(
+    val status: String? = null
+)
+
+@Serializable
+data class UpdateSkillRequest(
+    val enabled: Boolean? = null,
+    val instructions: String? = null
+)
+
+@Serializable
+data class ProposalRespondRequest(
+    val action: String // "accept" or "decline"
+)
+
 
 @Serializable
 data class CreateThreadRequest(

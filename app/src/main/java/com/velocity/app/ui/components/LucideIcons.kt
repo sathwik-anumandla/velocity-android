@@ -19,4 +19,14 @@ object LucideIcons {
     @DrawableRes val Compass: Int = R.drawable.ic_lucide_search
     @DrawableRes val Close: Int = R.drawable.ic_lucide_close
     @DrawableRes val ChevronRight: Int = R.drawable.ic_lucide_chevron_right
+    @DrawableRes val Brain: Int = R.drawable.ic_lucide_brain
+    @DrawableRes val Puzzle: Int = R.drawable.ic_lucide_puzzle
+    @DrawableRes val Clock: Int = R.drawable.ic_lucide_clock
+    @DrawableRes val Sparkles: Int = R.drawable.ic_lucide_sparkles
+    @DrawableRes val Trash: Int = R.drawable.ic_lucide_trash
+    @DrawableRes val Play: Int = R.drawable.ic_lucide_play
+    @DrawableRes val Pause: Int = R.drawable.ic_lucide_pause
+    @DrawableRes val Mail: Int = R.drawable.ic_lucide_mail
+    @DrawableRes val Edit: Int = R.drawable.ic_lucide_edit
 }
+

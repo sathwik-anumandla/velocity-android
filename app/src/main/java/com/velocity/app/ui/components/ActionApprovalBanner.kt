@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,13 +16,165 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.velocity.app.data.model.StagedAction
+import com.velocity.app.ui.theme.MonoTextStyle
 import com.velocity.app.ui.theme.SatoshiFontFamily
 import com.velocity.app.ui.theme.VelocityColors
 
 @Composable
-fun ActionApprovalBanner(
+fun ActionApprovalCard(
+    action: StagedAction,
+    onDecline: () -> Unit,
+    onApprove: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val to = action.parameters["to"]?.toString()?.trim('"') ?: "Recipient"
+    val subject = action.parameters["subject"]?.toString()?.trim('"') ?: "(No Subject)"
+    val body = action.parameters["body"]?.toString()?.trim('"') ?: ""
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFF141416))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0x26F59E0B)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(LucideIcons.Mail),
+                        contentDescription = null,
+                        tint = Color(0xFFF59E0B),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = "CONTROLLED ACTION APPROVAL",
+                        fontFamily = SatoshiFontFamily,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = Color(0xFFF59E0B)
+                    )
+                    Text(
+                        text = action.actionType.replace('_', ' ').uppercase(),
+                        fontFamily = SatoshiFontFamily,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color(0x26F59E0B))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "Requires Approval",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFFF59E0B)
+                )
+            }
+        }
+
+        // Details
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF1C1C1F))
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row {
+                Text(text = "To: ", style = MonoTextStyle, fontSize = 11.sp, color = VelocityColors.TextMuted)
+                Text(text = to, style = MonoTextStyle, fontSize = 11.sp, color = Color.White)
+            }
+            Row {
+                Text(text = "Subject: ", style = MonoTextStyle, fontSize = 11.sp, color = VelocityColors.TextMuted)
+                Text(text = subject, style = MonoTextStyle, fontSize = 11.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (body.isNotEmpty()) {
+                Text(
+                    text = body,
+                    style = MonoTextStyle,
+                    fontSize = 11.sp,
+                    color = Color(0xFFD4D4D8),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
+
+        // Action Buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { onDecline() }
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "Decline",
+                    fontFamily = SatoshiFontFamily,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = VelocityColors.TextMuted
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White)
+                    .clickable { onApprove() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "Approve & Execute",
+                    fontFamily = SatoshiFontFamily,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ProposalApprovalCard(
     title: String,
-    subtitle: String = "Requires confirmation to execute",
+    reason: String,
     onDecline: () -> Unit,
     onApprove: () -> Unit,
     modifier: Modifier = Modifier
@@ -31,8 +183,8 @@ fun ActionApprovalBanner(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF161618))
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .background(Color(0xFF18181B))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -45,14 +197,14 @@ fun ActionApprovalBanner(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0x26F59E0B)),
+                    .background(Color(0x26A78BFA)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(LucideIcons.ArrowUp),
+                    painter = painterResource(LucideIcons.Threads),
                     contentDescription = null,
-                    tint = Color(0xFFF59E0B),
-                    modifier = Modifier.size(16.dp)
+                    tint = Color(0xFFA78BFA),
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
@@ -62,12 +214,12 @@ fun ActionApprovalBanner(
                     fontFamily = SatoshiFontFamily,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = VelocityColors.TextPrimary,
+                    color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = subtitle,
+                    text = reason.ifEmpty { "Branch into dedicated Side Chat" },
                     fontFamily = SatoshiFontFamily,
                     fontSize = 11.sp,
                     color = VelocityColors.TextMuted,
@@ -83,12 +235,12 @@ fun ActionApprovalBanner(
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .clickable { onDecline() }
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Decline",
+                    text = "Continue Here",
                     fontFamily = SatoshiFontFamily,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -98,7 +250,7 @@ fun ActionApprovalBanner(
 
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(Color.White)
                     .clickable { onApprove() }
                     .padding(horizontal = 14.dp, vertical = 8.dp)

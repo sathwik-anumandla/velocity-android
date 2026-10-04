@@ -41,14 +41,13 @@ fun ModelConfigSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val supportedModels = listOf(
-        "gpt-5" to "Flagship intelligence & reasoning",
-        "o3-mini" to "High-speed reasoning co-pilot",
-        "o1" to "Exhaustive deep architectural reasoning",
-        "gpt-4.5" to "Dynamic creative technical partner"
+        "gpt-5.4-mini" to "Fast, lightweight daily driver",
+        "gpt-5.4" to "Flagship deep intelligence"
     )
 
-    val effortLevels = listOf("low", "medium", "high")
-    val verbosityLevels = listOf("concise", "medium", "exhaustive")
+    val effortLevels = listOf("none", "low", "medium", "high", "max")
+    val verbosityLevels = listOf("low" to "Concise", "medium" to "Balanced", "high" to "Comprehensive")
+    val recallLevels = listOf("low" to "Low", "medium" to "Balanced", "high" to "Deep")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -219,8 +218,8 @@ fun ModelConfigSheet(
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    verbosityLevels.forEach { verb ->
-                        val isSelected = currentConfig.verbosity.equals(verb, ignoreCase = true)
+                    verbosityLevels.forEach { (verbKey, verbLabel) ->
+                        val isSelected = currentConfig.verbosity.equals(verbKey, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -228,13 +227,55 @@ fun ModelConfigSheet(
                                 .background(if (isSelected) Color(0xFF2E2E34) else Color.Transparent)
                                 .clickable {
                                     VelocityHaptics.subtleTick(context)
-                                    onConfigChange(currentConfig.copy(verbosity = verb))
+                                    onConfigChange(currentConfig.copy(verbosity = verbKey))
                                 }
                                 .padding(vertical = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = verb.replaceFirstChar { it.uppercase() },
+                                text = verbLabel,
+                                fontFamily = SatoshiFontFamily,
+                                fontSize = 13.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isSelected) Color.White else VelocityColors.TextMuted
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 4. Memory Recall Budget
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "MEMORY RECALL BUDGET",
+                    style = VelocityTypography.labelSmall,
+                    color = VelocityColors.TextMuted
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF1A1A1E))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    recallLevels.forEach { (recKey, recLabel) ->
+                        val isSelected = currentConfig.recallBudget.equals(recKey, ignoreCase = true)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) Color(0xFF2E2E34) else Color.Transparent)
+                                .clickable {
+                                    VelocityHaptics.subtleTick(context)
+                                    onConfigChange(currentConfig.copy(recallBudget = recKey))
+                                }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = recLabel,
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 13.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
@@ -249,3 +290,4 @@ fun ModelConfigSheet(
         }
     }
 }
+
