@@ -118,14 +118,29 @@ class TimelineViewModel : ViewModel() {
             streamingStatus = "Thinking..."
         )
 
+        val cleanModel = when (model?.lowercase()?.trim()) {
+            "gpt-5.4", "flagship", "gpt-5-full" -> "gpt-5.4"
+            else -> "gpt-5.4-mini"
+        }
+        val cleanVerbosity = when (verbosity.lowercase().trim()) {
+            "low", "medium", "high" -> verbosity.lowercase().trim()
+            "concise" -> "low"
+            "exhaustive" -> "high"
+            else -> "low"
+        }
+        val cleanEffort = when (thinkingEffort.lowercase().trim()) {
+            "none", "low", "medium", "high", "max" -> thinkingEffort.lowercase().trim()
+            else -> "medium"
+        }
+
         viewModelScope.launch {
             try {
                 repo.streamTurn(
                     message = text,
                     sessionId = sessionId,
-                    model = model ?: "gpt-5.4-mini",
-                    thinkingEffort = thinkingEffort,
-                    verbosity = verbosity
+                    model = cleanModel,
+                    thinkingEffort = cleanEffort,
+                    verbosity = cleanVerbosity
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.Status -> {

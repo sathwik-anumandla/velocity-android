@@ -106,7 +106,7 @@ fun MainTimelineScreen(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Left Side: Thread Back Button (Only shown when not in main session; Health dot removed)
+                // Left Side: Thread Back Button OR Reload Button when on Main
                 if (uiState.currentSessionId != "main") {
                     Row(
                         modifier = Modifier
@@ -129,9 +129,29 @@ fun MainTimelineScreen(
                             color = VelocityColors.TextPrimary
                         )
                     }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF1C1C1E))
+                            .clickable {
+                                VelocityHaptics.lightClick(context)
+                                viewModel.loadMessages()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(LucideIcons.Refresh),
+                            contentDescription = "Reload",
+                            tint = if (uiState.isLoading) Color(0xFFA1A1AA) else Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
 
-                // Center Title
+                // Center Title (Tapping triggers reload)
                 Text(
                     text = uiState.sessionTitle,
                     fontFamily = SatoshiFontFamily,
@@ -141,7 +161,13 @@ fun MainTimelineScreen(
                     letterSpacing = (-0.5).sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 60.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 60.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            VelocityHaptics.lightClick(context)
+                            viewModel.loadMessages()
+                        }
                 )
 
                 // Right Side: Apple-Style Hamburger Menu Button
@@ -173,10 +199,63 @@ fun MainTimelineScreen(
                         onDismissRequest = { isMenuOpen = false },
                         offset = DpOffset(x = 0.dp, y = 8.dp),
                         modifier = Modifier
-                            .width(200.dp)
+                            .width(210.dp)
                             .clip(RoundedCornerShape(18.dp))
                             .background(Color(0xFF1C1C1E))
                     ) {
+                        // Return to Main (If currently in a side thread)
+                        if (uiState.currentSessionId != "main") {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "Main Timeline",
+                                        fontFamily = SatoshiFontFamily,
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 14.sp,
+                                        color = Color.White
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(LucideIcons.Home),
+                                        contentDescription = null,
+                                        tint = Color(0xFF60A5FA),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                onClick = {
+                                    VelocityHaptics.lightClick(context)
+                                    isMenuOpen = false
+                                    viewModel.switchSession("main", "velocity")
+                                }
+                            )
+                        }
+
+                        // Reload Conversation
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = if (uiState.isLoading) "Reloading..." else "Reload Conversation",
+                                    fontFamily = SatoshiFontFamily,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp,
+                                    color = Color.White
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(LucideIcons.Refresh),
+                                    contentDescription = null,
+                                    tint = Color(0xFF38BDF8),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            onClick = {
+                                VelocityHaptics.lightClick(context)
+                                isMenuOpen = false
+                                viewModel.loadMessages()
+                            }
+                        )
                         // 1. Threads
                         DropdownMenuItem(
                             text = {

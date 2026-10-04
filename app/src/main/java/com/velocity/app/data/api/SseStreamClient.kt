@@ -31,7 +31,7 @@ sealed class ChatStreamEvent {
 data class ChatStreamPayload(
     val message: String,
     val session_id: String = "main",
-    val model: String? = null,
+    val model: String = "gpt-5.4-mini",
     val thinking_effort: String = "medium",
     val verbosity: String = "low"
 )
@@ -113,10 +113,22 @@ class SseStreamClient(
             }
 
             override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
+                val errorBody = try {
+                    response?.body?.string()
+                } catch (_: Exception) {
+                    null
+                }
                 val errorMsg = when {
-                    response?.code == 403 -> "Cloudflare Access Forbidden (Check Client ID and Secret)"
-                    response?.code == 404 -> "Endpoint not found on server"
-                    response != null -> "Server error HTTP ${response.code}"
+                    response?.code == 403 -> "Cloudflare Access Forbidden (HTTP 403). Check Service Token Client ID & Secret."
+                    response?.code == 404 -> "Endpoint not found on server (HTTP 404)"
+                    response?.code == 422 -> {
+                        if (!errorBody.isNullOrBlank()) "Validation error (HTTP 422): $errorBody"
+                        else "Invalid payload (HTTP 422)"
+                    }
+                    response != null -> {
+                        if (!errorBody.isNullOrBlank()) "Server error HTTP ${response.code}: $errorBody"
+                        else "Server error HTTP ${response.code}"
+                    }
                     else -> t?.message ?: "Stream connection failed"
                 }
                 trySend(ChatStreamEvent.Error(errorMsg))

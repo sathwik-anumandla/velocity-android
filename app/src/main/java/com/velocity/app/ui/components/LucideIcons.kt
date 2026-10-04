@@ -28,5 +28,7 @@ object LucideIcons {
     @DrawableRes val Pause: Int = R.drawable.ic_lucide_pause
     @DrawableRes val Mail: Int = R.drawable.ic_lucide_mail
     @DrawableRes val Edit: Int = R.drawable.ic_lucide_edit
+    @DrawableRes val Refresh: Int = R.drawable.ic_lucide_refresh
+    @DrawableRes val Home: Int = R.drawable.ic_lucide_home
 }
 

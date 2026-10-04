@@ -5,15 +5,17 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class VaultTreeItem(
-    val path: String,
-    val name: String,
+    val path: String = "",
+    val name: String = "",
+    val title: String? = null,
+    val category: String? = null,
     val type: String = "file"
 )
 
 @Serializable
 data class ScheduledRoutine(
-    val id: String,
-    val name: String,
+    val id: String = "",
+    val name: String = "",
     @SerialName("event_type") val eventType: String = "recurring",
     val prompt: String = "",
     @SerialName("cron_expression") val cronExpression: String? = null,
@@ -23,8 +25,8 @@ data class ScheduledRoutine(
 
 @Serializable
 data class SkillRecord(
-    val id: String,
-    val name: String,
+    val id: String = "",
+    val name: String = "",
     val description: String = "",
     val instructions: String = "",
     val enabled: Boolean = true

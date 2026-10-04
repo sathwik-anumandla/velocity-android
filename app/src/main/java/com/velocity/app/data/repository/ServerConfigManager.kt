@@ -77,13 +77,45 @@ object ServerConfigManager {
 
     fun loadModelConfig(context: Context): ModelConfig {
         val prefs = getPrefs(context)
-        return ModelConfig(
-            model = prefs.getString(KEY_MODEL, "gpt-5.4-mini") ?: "gpt-5.4-mini",
-            thinkingEffort = prefs.getString(KEY_THINKING_EFFORT, "medium") ?: "medium",
-            verbosity = prefs.getString(KEY_VERBOSITY, "low") ?: "low",
-            recallBudget = prefs.getString(KEY_RECALL_BUDGET, "medium") ?: "medium"
+        val rawModel = prefs.getString(KEY_MODEL, "gpt-5.4-mini") ?: "gpt-5.4-mini"
+        val model = when (rawModel.lowercase().trim()) {
+            "gpt-5.4", "flagship", "gpt-5-full", "full" -> "gpt-5.4"
+            else -> "gpt-5.4-mini"
+        }
+
+        val rawVerbosity = prefs.getString(KEY_VERBOSITY, "low") ?: "low"
+        val verbosity = when (rawVerbosity.lowercase().trim()) {
+            "concise", "low" -> "low"
+            "normal", "default", "balanced", "medium" -> "medium"
+            "exhaustive", "verbose", "high", "comprehensive" -> "high"
+            else -> "low"
+        }
+
+        val rawEffort = prefs.getString(KEY_THINKING_EFFORT, "medium") ?: "medium"
+        val thinkingEffort = when (rawEffort.lowercase().trim()) {
+            "none", "low", "medium", "high", "max" -> rawEffort.lowercase().trim()
+            else -> "medium"
+        }
+
+        val rawRecall = prefs.getString(KEY_RECALL_BUDGET, "medium") ?: "medium"
+        val recallBudget = when (rawRecall.lowercase().trim()) {
+            "low", "medium", "high" -> rawRecall.lowercase().trim()
+            else -> "medium"
+        }
+
+        val config = ModelConfig(
+            model = model,
+            thinkingEffort = thinkingEffort,
+            verbosity = verbosity,
+            recallBudget = recallBudget
         )
 
+        // Automatically sanitize SharedPreferences if older invalid strings were cached
+        if (rawModel != model || rawVerbosity != verbosity || rawEffort != thinkingEffort || rawRecall != recallBudget) {
+            saveModelConfig(context, config)
+        }
+
+        return config
     }
 
     fun saveModelConfig(context: Context, config: ModelConfig) {

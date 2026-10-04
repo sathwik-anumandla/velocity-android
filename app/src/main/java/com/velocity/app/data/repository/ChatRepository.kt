@@ -116,12 +116,27 @@ class ChatRepository(private val config: ServerConfig) {
             val raw = res.body()?.string() ?: return emptyList()
             val element = json.parseToJsonElement(raw)
 
-            if (element is kotlinx.serialization.json.JsonObject && element.containsKey("messages")) {
-                json.decodeFromJsonElement<List<ChatMessage>>(element.jsonObject["messages"]!!)
-            } else if (element is kotlinx.serialization.json.JsonArray) {
-                json.decodeFromJsonElement<List<ChatMessage>>(element)
-            } else {
-                emptyList()
+            val msgArray = when {
+                element is kotlinx.serialization.json.JsonObject && element.containsKey("messages") -> element.jsonObject["messages"]?.jsonArray
+                element is kotlinx.serialization.json.JsonArray -> element
+                else -> null
+            } ?: return emptyList()
+
+            msgArray.mapNotNull { msgElem ->
+                try {
+                    json.decodeFromJsonElement<ChatMessage>(msgElem)
+                } catch (e: Exception) {
+                    try {
+                        val obj = msgElem.jsonObject
+                        val id = obj["id"]?.jsonPrimitive?.content ?: java.util.UUID.randomUUID().toString()
+                        val role = obj["role"]?.jsonPrimitive?.content ?: "assistant"
+                        val content = obj["content"]?.jsonPrimitive?.content ?: ""
+                        val createdAt = obj["created_at"]?.jsonPrimitive?.content
+                        ChatMessage(id = id, role = role, content = content, createdAt = createdAt)
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -228,11 +243,28 @@ class ChatRepository(private val config: ServerConfig) {
             if (!res.isSuccessful) return emptyList()
             val raw = res.body()?.string() ?: return emptyList()
             val element = json.parseToJsonElement(raw)
-            if (element is kotlinx.serialization.json.JsonObject && element.containsKey("tree")) {
-                json.decodeFromJsonElement<List<VaultTreeItem>>(element.jsonObject["tree"]!!)
-            } else if (element is kotlinx.serialization.json.JsonArray) {
-                json.decodeFromJsonElement<List<VaultTreeItem>>(element)
-            } else emptyList()
+            val array = when {
+                element is kotlinx.serialization.json.JsonObject && element.containsKey("tree") -> element.jsonObject["tree"]?.jsonArray
+                element is kotlinx.serialization.json.JsonArray -> element
+                else -> null
+            } ?: return emptyList()
+
+            array.mapNotNull { itemElem ->
+                try {
+                    json.decodeFromJsonElement<VaultTreeItem>(itemElem)
+                } catch (_: Exception) {
+                    try {
+                        val obj = itemElem.jsonObject
+                        val path = obj["path"]?.jsonPrimitive?.content ?: ""
+                        val name = obj["name"]?.jsonPrimitive?.content ?: obj["title"]?.jsonPrimitive?.content ?: path
+                        val title = obj["title"]?.jsonPrimitive?.content
+                        val category = obj["category"]?.jsonPrimitive?.content
+                        if (path.isNotBlank()) VaultTreeItem(path = path, name = name, title = title, category = category) else null
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
@@ -268,9 +300,14 @@ class ChatRepository(private val config: ServerConfig) {
             if (!res.isSuccessful) return emptyList()
             val raw = res.body()?.string() ?: return emptyList()
             val element = json.parseToJsonElement(raw)
-            if (element is kotlinx.serialization.json.JsonArray) {
-                json.decodeFromJsonElement<List<ScheduledRoutine>>(element)
-            } else emptyList()
+            val array = if (element is kotlinx.serialization.json.JsonArray) element else return emptyList()
+            array.mapNotNull { itemElem ->
+                try {
+                    json.decodeFromJsonElement<ScheduledRoutine>(itemElem)
+                } catch (_: Exception) {
+                    null
+                }
+            }
         } catch (_: Exception) {
             emptyList()
         }
@@ -325,9 +362,14 @@ class ChatRepository(private val config: ServerConfig) {
             if (!res.isSuccessful) return emptyList()
             val raw = res.body()?.string() ?: return emptyList()
             val element = json.parseToJsonElement(raw)
-            if (element is kotlinx.serialization.json.JsonArray) {
-                json.decodeFromJsonElement<List<SkillRecord>>(element)
-            } else emptyList()
+            val array = if (element is kotlinx.serialization.json.JsonArray) element else return emptyList()
+            array.mapNotNull { itemElem ->
+                try {
+                    json.decodeFromJsonElement<SkillRecord>(itemElem)
+                } catch (_: Exception) {
+                    null
+                }
+            }
         } catch (_: Exception) {
             emptyList()
         }
@@ -378,13 +420,28 @@ class ChatRepository(private val config: ServerConfig) {
         thinkingEffort: String = "medium",
         verbosity: String = "low"
     ): Flow<ChatStreamEvent> {
+        val cleanModel = when (model?.lowercase()?.trim()) {
+            "gpt-5.4", "flagship", "gpt-5-full" -> "gpt-5.4"
+            else -> "gpt-5.4-mini"
+        }
+        val cleanVerbosity = when (verbosity.lowercase().trim()) {
+            "low", "medium", "high" -> verbosity.lowercase().trim()
+            "concise" -> "low"
+            "exhaustive" -> "high"
+            else -> "low"
+        }
+        val cleanEffort = when (thinkingEffort.lowercase().trim()) {
+            "none", "low", "medium", "high", "max" -> thinkingEffort.lowercase().trim()
+            else -> "medium"
+        }
+
         return sseClient.streamChat(
             ChatStreamPayload(
                 message = message,
                 session_id = sessionId,
-                model = model,
-                thinking_effort = thinkingEffort,
-                verbosity = verbosity
+                model = cleanModel,
+                thinking_effort = cleanEffort,
+                verbosity = cleanVerbosity
             )
         )
     }

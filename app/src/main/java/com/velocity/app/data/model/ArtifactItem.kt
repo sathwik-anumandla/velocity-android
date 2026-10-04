@@ -5,8 +5,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ArtifactItem(
-    val id: String,
-    val title: String,
+    val id: String = "",
+    val title: String = "",
     @SerialName("artifact_type") val artifactType: String = "document",
     val language: String = "markdown",
     val content: String = "",
