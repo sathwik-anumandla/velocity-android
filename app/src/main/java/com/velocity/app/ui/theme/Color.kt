@@ -6,7 +6,8 @@ object VelocityColors {
     // Canvas & Layered Surfaces (Strict Flat Design, Zero Borders)
     val Canvas = Color(0xFF000000)          // Pure AMOLED black canvas
     val SurfaceCard = Color(0xFF141416)     // Containers, sheets, flyouts
-    val SurfaceCapsule = Color(0xFF1C1C1E)  // User chat capsule, floating docks
+    val SurfaceCapsule = Color(0xFF222226)  // User chat capsule, floating docks
+    val SurfaceAssistantCapsule = Color(0xFF18181C) // Assistant response capsule
     val SurfaceElevated = Color(0xFF252528) // Hover / active touch states
     val SurfaceInput = Color(0xFF141416)    // Bottom message bar container
     val SurfaceCode = Color(0xFF0D0D10)     // Code block background

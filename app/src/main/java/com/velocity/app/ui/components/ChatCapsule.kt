@@ -81,7 +81,7 @@ fun ChatCapsule(
                 modifier = Modifier
                     .widthIn(max = 320.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(if (isUser) VelocityColors.SurfaceCapsule else Color(0xFF121214))
+                    .background(if (isUser) VelocityColors.SurfaceCapsule else VelocityColors.SurfaceAssistantCapsule)
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Column {
