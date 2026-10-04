@@ -85,7 +85,12 @@ class TimelineViewModel : ViewModel() {
         }
     }
 
-    fun sendMessage(text: String) {
+    fun sendMessage(
+        text: String,
+        model: String? = null,
+        thinkingEffort: String = "medium",
+        verbosity: String = "medium"
+    ) {
         if (text.isBlank()) return
         val repo = repository ?: return
         val sessionId = _uiState.value.currentSessionId
@@ -104,7 +109,13 @@ class TimelineViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                repo.streamTurn(message = text, sessionId = sessionId).collect { event ->
+                repo.streamTurn(
+                    message = text,
+                    sessionId = sessionId,
+                    model = model,
+                    thinkingEffort = thinkingEffort,
+                    verbosity = verbosity
+                ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.Status -> {
                             _uiState.value = _uiState.value.copy(streamingStatus = event.text)

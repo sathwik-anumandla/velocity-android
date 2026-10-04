@@ -30,8 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.velocity.app.data.model.ArtifactItem
 import com.velocity.app.data.repository.ChatRepository
+import com.velocity.app.data.repository.ModelConfig
 import com.velocity.app.data.repository.ServerConfig
+import com.velocity.app.data.repository.ServerConfigManager
 import com.velocity.app.ui.components.*
+import com.velocity.app.ui.settings.SettingsScreen
 import com.velocity.app.ui.sheets.NavigationSheetHost
 import com.velocity.app.ui.sheets.SheetType
 import com.velocity.app.ui.theme.SatoshiFontFamily
@@ -53,7 +56,11 @@ fun MainTimelineScreen(
     val listState = rememberLazyListState()
 
     var isMenuOpen by remember { mutableStateOf(false) }
+    var isModelSheetOpen by remember { mutableStateOf(false) }
+    var isSettingsOpen by remember { mutableStateOf(false) }
     var activeSheet by remember { mutableStateOf(SheetType.NONE) }
+
+    var modelConfig by remember { mutableStateOf(ServerConfigManager.loadModelConfig(context)) }
 
     // Initialize repository on first launch
     LaunchedEffect(repository) {
@@ -67,6 +74,20 @@ fun MainTimelineScreen(
         }
     }
 
+    if (isSettingsOpen) {
+        SettingsScreen(
+            repository = repository,
+            serverConfig = serverConfig,
+            onClose = {
+                // Reload model preferences in case they were updated in settings
+                modelConfig = ServerConfigManager.loadModelConfig(context)
+                isSettingsOpen = false
+            },
+            onDisconnect = onDisconnect
+        )
+        return
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -77,7 +98,7 @@ fun MainTimelineScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Apple-Style Header (Centered Brand, Left Health Indicator, Right Menu Button)
+            // Apple-Style Header (Centered Brand, Left Back if in Thread, Right Hamburger Menu)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -85,7 +106,7 @@ fun MainTimelineScreen(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Left Side: Status Dot or Thread Back Button
+                // Left Side: Thread Back Button (Only shown when not in main session; Health dot removed)
                 if (uiState.currentSessionId != "main") {
                     Row(
                         modifier = Modifier
@@ -101,21 +122,13 @@ fun MainTimelineScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "Main",
-                            style = VelocityTypography.labelSmall,
+                            text = "‹ Main",
+                            fontFamily = SatoshiFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp,
                             color = VelocityColors.TextPrimary
                         )
                     }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (uiState.isBackendOnline) Color(0xFF10B981) else Color(0xFFF59E0B)
-                            )
-                    )
                 }
 
                 // Center Title
@@ -131,7 +144,7 @@ fun MainTimelineScreen(
                     modifier = Modifier.padding(horizontal = 60.dp)
                 )
 
-                // Right Side: Apple-Style Menu Dropdown Trigger
+                // Right Side: Apple-Style Hamburger Menu Button
                 Box(
                     modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
@@ -147,7 +160,7 @@ fun MainTimelineScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            painter = painterResource(LucideIcons.More),
+                            painter = painterResource(LucideIcons.Menu),
                             contentDescription = "Menu",
                             tint = Color.White,
                             modifier = Modifier.size(18.dp)
@@ -274,7 +287,7 @@ fun MainTimelineScreen(
                             color = Color(0xFF2E2E32)
                         )
 
-                        // 5. Settings
+                        // 5. Settings (Standalone Apple System Settings)
                         DropdownMenuItem(
                             text = {
                                 Text(
@@ -296,7 +309,7 @@ fun MainTimelineScreen(
                             onClick = {
                                 VelocityHaptics.lightClick(context)
                                 isMenuOpen = false
-                                activeSheet = SheetType.SETTINGS
+                                isSettingsOpen = true
                             }
                         )
                     }
@@ -319,7 +332,7 @@ fun MainTimelineScreen(
                         onOpenThread = { threadId ->
                             viewModel.switchSession(threadId)
                         },
-                        onOpenArtifact = { artifactId ->
+                        onOpenArtifact = { _ ->
                             activeSheet = SheetType.DOCUMENTS
                         }
                     )
@@ -388,17 +401,23 @@ fun MainTimelineScreen(
                     onSend = {
                         val text = inputText
                         inputText = ""
-                        viewModel.sendMessage(text)
+                        viewModel.sendMessage(
+                            text = text,
+                            model = modelConfig.model,
+                            thinkingEffort = modelConfig.thinkingEffort,
+                            verbosity = modelConfig.verbosity
+                        )
                     },
                     onOptionsClick = {
-                        // Quick options dropdown
-                        isMenuOpen = true
+                        // Opens model & reasoning configuration sheet
+                        VelocityHaptics.lightClick(context)
+                        isModelSheetOpen = true
                     }
                 )
             }
         }
 
-        // Apple Bottom Sheet Host for Threads, Documents, Search, Chronology, Settings
+        // Apple Bottom Sheet Host for Threads, Documents, Search, Chronology
         NavigationSheetHost(
             activeSheet = activeSheet,
             onDismiss = { activeSheet = SheetType.NONE },
@@ -411,6 +430,17 @@ fun MainTimelineScreen(
                 onOpenArtifactDetail?.invoke(artifact)
             },
             onDisconnect = onDisconnect
+        )
+
+        // Model Configuration Bottom Sheet (Triggered by + button)
+        ModelConfigSheet(
+            isOpen = isModelSheetOpen,
+            currentConfig = modelConfig,
+            onConfigChange = {
+                modelConfig = it
+                ServerConfigManager.saveModelConfig(context, it)
+            },
+            onDismiss = { isModelSheetOpen = false }
         )
     }
 }

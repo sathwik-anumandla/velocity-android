@@ -52,8 +52,9 @@ class SseStreamClient(
         val requestBody = json.encodeToString(ChatStreamPayload.serializer(), payload)
             .toRequestBody("application/json".toMediaType())
 
+        val cleanUrl = baseUrl.trimEnd('/')
         val requestBuilder = Request.Builder()
-            .url("${baseUrl.trimEnd('/')}/api/chat/stream")
+            .url("$cleanUrl/chat/stream")
             .post(requestBody)
             .header("Accept", "text/event-stream")
 

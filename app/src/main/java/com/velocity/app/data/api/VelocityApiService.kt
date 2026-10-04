@@ -11,8 +11,14 @@ import retrofit2.http.*
 
 interface VelocityApiService {
 
+    @GET("sessions/main")
+    suspend fun getMainSessionRaw(): Response<ResponseBody>
+
+    @GET("sessions/{id}")
+    suspend fun getSessionRaw(@Path("id") id: String): Response<ResponseBody>
+
     @GET("api/sessions/main/messages")
-    suspend fun getMainMessages(): Response<List<ChatMessage>>
+    suspend fun getMainMessagesDirect(): Response<List<ChatMessage>>
 
     @GET("api/threads")
     suspend fun getThreads(): Response<ResponseBody>
@@ -37,6 +43,18 @@ interface VelocityApiService {
 
     @GET("search")
     suspend fun searchMessages(@Query("q") query: String): Response<List<SearchResultItem>>
+
+    @GET("api/integrations/status")
+    suspend fun getIntegrationStatus(): Response<ResponseBody>
+
+    @GET("api/schedules")
+    suspend fun getSchedules(): Response<ResponseBody>
+
+    @GET("api/skills")
+    suspend fun getSkills(): Response<ResponseBody>
+
+    @GET("api/memory/tree")
+    suspend fun getVaultTree(): Response<ResponseBody>
 
     @POST("api/actions/{id}/respond")
     suspend fun respondAction(

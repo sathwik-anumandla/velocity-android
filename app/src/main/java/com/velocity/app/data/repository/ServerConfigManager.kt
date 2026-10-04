@@ -25,12 +25,25 @@ data class ServerConfig(
         }
 }
 
+@Serializable
+data class ModelConfig(
+    val model: String = "gpt-5",
+    val thinkingEffort: String = "medium", // low, medium, high
+    val verbosity: String = "medium",      // concise, medium, exhaustive
+    val recallBudget: String = "medium"    // low, medium, high
+)
+
 object ServerConfigManager {
     private const val PREFS_NAME = "velocity_server_prefs"
     private const val KEY_BASE_URL = "base_url"
     private const val KEY_CF_CLIENT_ID = "cf_client_id"
     private const val KEY_CF_CLIENT_SECRET = "cf_client_secret"
     private const val KEY_IS_PAIRED = "is_paired"
+
+    private const val KEY_MODEL = "cfg_model"
+    private const val KEY_THINKING_EFFORT = "cfg_thinking_effort"
+    private const val KEY_VERBOSITY = "cfg_verbosity"
+    private const val KEY_RECALL_BUDGET = "cfg_recall_budget"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -59,6 +72,25 @@ object ServerConfigManager {
             .putString(KEY_CF_CLIENT_ID, config.cfClientId.trim())
             .putString(KEY_CF_CLIENT_SECRET, config.cfClientSecret.trim())
             .putBoolean(KEY_IS_PAIRED, config.isPaired)
+            .apply()
+    }
+
+    fun loadModelConfig(context: Context): ModelConfig {
+        val prefs = getPrefs(context)
+        return ModelConfig(
+            model = prefs.getString(KEY_MODEL, "gpt-5") ?: "gpt-5",
+            thinkingEffort = prefs.getString(KEY_THINKING_EFFORT, "medium") ?: "medium",
+            verbosity = prefs.getString(KEY_VERBOSITY, "medium") ?: "medium",
+            recallBudget = prefs.getString(KEY_RECALL_BUDGET, "medium") ?: "medium"
+        )
+    }
+
+    fun saveModelConfig(context: Context, config: ModelConfig) {
+        getPrefs(context).edit()
+            .putString(KEY_MODEL, config.model)
+            .putString(KEY_THINKING_EFFORT, config.thinkingEffort)
+            .putString(KEY_VERBOSITY, config.verbosity)
+            .putString(KEY_RECALL_BUDGET, config.recallBudget)
             .apply()
     }
 

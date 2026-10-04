@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -68,8 +69,7 @@ class ChatRepository(private val config: ServerConfig) {
             } else if (res.code() == 403) {
                 Result.failure(Exception("Cloudflare Access Denied (HTTP 403). Please verify Service Token credentials."))
             } else {
-                // If /health gave 404, fallback to checking main messages
-                val fallback = api.getMainMessages()
+                val fallback = api.getMainSessionRaw()
                 if (fallback.isSuccessful) {
                     Result.success(true)
                 } else {
@@ -81,9 +81,41 @@ class ChatRepository(private val config: ServerConfig) {
         }
     }
 
+    suspend fun fetchHealthDetails(): Map<String, String> {
+        return try {
+            val res = api.getHealth()
+            if (res.isSuccessful) res.body().orEmpty() else emptyMap()
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
     suspend fun fetchMainMessages(): List<ChatMessage> {
-        val res = api.getMainMessages()
-        return if (res.isSuccessful) res.body().orEmpty() else emptyList()
+        return fetchSessionMessages("main")
+    }
+
+    suspend fun fetchThreadMessages(threadId: String): List<ChatMessage> {
+        return fetchSessionMessages(threadId)
+    }
+
+    private suspend fun fetchSessionMessages(sessionId: String): List<ChatMessage> {
+        return try {
+            val res = api.getSessionRaw(sessionId)
+            if (!res.isSuccessful) return emptyList()
+            val raw = res.body()?.string() ?: return emptyList()
+            val element = json.parseToJsonElement(raw)
+
+            if (element is kotlinx.serialization.json.JsonObject && element.containsKey("messages")) {
+                json.decodeFromJsonElement<List<ChatMessage>>(element.jsonObject["messages"]!!)
+            } else if (element is kotlinx.serialization.json.JsonArray) {
+                json.decodeFromJsonElement<List<ChatMessage>>(element)
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
     }
 
     suspend fun fetchThreads(): List<ThreadItem> {
@@ -102,11 +134,6 @@ class ChatRepository(private val config: ServerConfig) {
         } catch (_: Exception) {
             emptyList()
         }
-    }
-
-    suspend fun fetchThreadMessages(threadId: String): List<ChatMessage> {
-        val res = api.getThreadMessages(threadId)
-        return if (res.isSuccessful) res.body().orEmpty() else emptyList()
     }
 
     suspend fun fetchArtifacts(): List<ArtifactItem> {
@@ -155,6 +182,52 @@ class ChatRepository(private val config: ServerConfig) {
         }
     }
 
+    suspend fun fetchIntegrationStatus(): Map<String, Boolean> {
+        return try {
+            val res = api.getIntegrationStatus()
+            if (!res.isSuccessful) return emptyMap()
+            val raw = res.body()?.string() ?: return emptyMap()
+            val element = json.parseToJsonElement(raw)
+            if (element is kotlinx.serialization.json.JsonObject) {
+                element.jsonObject.mapValues { (_, v) ->
+                    v.jsonPrimitive.content.toBooleanStrictOrNull() ?: false
+                }
+            } else emptyMap()
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    suspend fun fetchSchedules(): List<Map<String, String>> {
+        return try {
+            val res = api.getSchedules()
+            if (!res.isSuccessful) return emptyList()
+            val raw = res.body()?.string() ?: return emptyList()
+            val element = json.parseToJsonElement(raw)
+            if (element is kotlinx.serialization.json.JsonArray) {
+                element.mapNotNull { it as? kotlinx.serialization.json.JsonObject }
+                    .map { obj -> obj.mapValues { it.value.jsonPrimitive.content } }
+            } else emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun fetchSkills(): List<Map<String, String>> {
+        return try {
+            val res = api.getSkills()
+            if (!res.isSuccessful) return emptyList()
+            val raw = res.body()?.string() ?: return emptyList()
+            val element = json.parseToJsonElement(raw)
+            if (element is kotlinx.serialization.json.JsonArray) {
+                element.mapNotNull { it as? kotlinx.serialization.json.JsonObject }
+                    .map { obj -> obj.mapValues { it.value.jsonPrimitive.content } }
+            } else emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
     suspend fun respondAction(actionId: String, confirm: Boolean): Boolean {
         val res = api.respondAction(
             actionId,
@@ -166,6 +239,7 @@ class ChatRepository(private val config: ServerConfig) {
     fun streamTurn(
         message: String,
         sessionId: String = "main",
+        model: String? = null,
         thinkingEffort: String = "medium",
         verbosity: String = "medium"
     ): Flow<ChatStreamEvent> {
@@ -173,6 +247,7 @@ class ChatRepository(private val config: ServerConfig) {
             ChatStreamPayload(
                 message = message,
                 session_id = sessionId,
+                model = model,
                 thinking_effort = thinkingEffort,
                 verbosity = verbosity
             )
