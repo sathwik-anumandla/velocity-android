@@ -3,6 +3,7 @@ package com.velocity.app.data.api
 import com.velocity.app.data.model.ArtifactItem
 import com.velocity.app.data.model.ChatMessage
 import com.velocity.app.data.model.ThreadItem
+import com.velocity.app.data.model.ThreadProposal
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import okhttp3.ResponseBody
@@ -84,7 +85,7 @@ interface VelocityApiService {
     suspend fun respondThreadProposal(
         @Path("message_id") messageId: String,
         @Body payload: ProposalRespondRequest
-    ): Response<ResponseBody>
+    ): Response<ProposalRespondResult>
 
     @POST("api/auth/google/disconnect")
     suspend fun disconnectGoogle(): Response<ResponseBody>
@@ -120,6 +121,13 @@ data class UpdateSkillRequest(
 @Serializable
 data class ProposalRespondRequest(
     val action: String // "accept" or "decline"
+)
+
+@Serializable
+data class ProposalRespondResult(
+    val status: String,
+    val thread: ThreadItem? = null,
+    val proposal: ThreadProposal? = null
 )
 
 

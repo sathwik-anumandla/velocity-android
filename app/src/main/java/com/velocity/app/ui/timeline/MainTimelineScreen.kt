@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -52,6 +53,7 @@ fun MainTimelineScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    val isThread = uiState.currentSessionId != "main"
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
@@ -72,6 +74,22 @@ fun MainTimelineScreen(
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.viewportEndOffset }
+            .collect { viewportEnd ->
+                val lastMessageIndex = uiState.messages.lastIndex
+                if (viewportEnd > 0 && lastMessageIndex >= 0) {
+                    listState.scrollToItem(lastMessageIndex)
+                    val layout = listState.layoutInfo
+                    val lastMessage = layout.visibleItemsInfo.lastOrNull { it.index == lastMessageIndex }
+                    if (lastMessage != null) {
+                        val remaining = lastMessage.offset + lastMessage.size - layout.viewportEndOffset
+                        if (remaining > 0) listState.scrollBy(remaining.toFloat())
+                    }
+                }
+            }
     }
 
     if (isSettingsOpen) {
@@ -97,6 +115,8 @@ fun MainTimelineScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
         ) {
             // Apple-Style Header (Centered Brand, Left Back if in Thread, Right Hamburger Menu)
             Box(
@@ -408,47 +428,25 @@ fun MainTimelineScreen(
                 items(uiState.messages, key = { it.id }) { msg ->
                     ChatCapsule(
                         message = msg,
+                        isThread = isThread,
+                        streamingStatus = if (msg.isStreaming) uiState.streamingStatus else null,
                         onOpenThread = { threadId ->
+                            VelocityHaptics.lightClick(context)
                             viewModel.switchSession(threadId)
                         },
                         onOpenArtifact = { _ ->
+                            VelocityHaptics.lightClick(context)
                             activeSheet = SheetType.DOCUMENTS
                         }
                     )
                 }
 
-                // Live Streaming Status Pulse
-                if (uiState.isStreaming && uiState.streamingStatus != null) {
-                    item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(start = 6.dp, top = 6.dp, bottom = 4.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(VelocityColors.AccentSky)
-                            )
-                            Text(
-                                text = uiState.streamingStatus ?: "Thinking...",
-                                fontSize = 12.sp,
-                                fontFamily = SatoshiFontFamily,
-                                fontWeight = FontWeight.Medium,
-                                color = VelocityColors.TextMuted
-                            )
-                        }
-                    }
-                }
             }
 
             // Bottom Section: Action Approval + Single Floating Input Capsule (Elevates with IME)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .imePadding()
-                    .navigationBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -462,13 +460,20 @@ fun MainTimelineScreen(
                         ProposalApprovalCard(
                             title = prop.title,
                             reason = prop.reason,
+                            enabled = !uiState.isRespondingToProposal && !uiState.isStreaming,
                             onDecline = {
-                                VelocityHaptics.error(context)
-                                viewModel.respondProposal(accept = false)
+                                viewModel.respondProposal(
+                                    accept = false,
+                                    onSuccess = { VelocityHaptics.lightClick(context) },
+                                    onError = { VelocityHaptics.error(context) }
+                                )
                             },
                             onApprove = {
-                                VelocityHaptics.success(context)
-                                viewModel.respondProposal(accept = true)
+                                viewModel.respondProposal(
+                                    accept = true,
+                                    onSuccess = { VelocityHaptics.success(context) },
+                                    onError = { VelocityHaptics.error(context) }
+                                )
                             }
                         )
                     }
@@ -484,12 +489,18 @@ fun MainTimelineScreen(
                         ActionApprovalCard(
                             action = action,
                             onDecline = {
-                                VelocityHaptics.error(context)
-                                viewModel.respondAction(confirm = false)
+                                viewModel.respondAction(
+                                    confirm = false,
+                                    onSuccess = { VelocityHaptics.lightClick(context) },
+                                    onError = { VelocityHaptics.error(context) }
+                                )
                             },
                             onApprove = {
-                                VelocityHaptics.success(context)
-                                viewModel.respondAction(confirm = true)
+                                viewModel.respondAction(
+                                    confirm = true,
+                                    onSuccess = { VelocityHaptics.success(context) },
+                                    onError = { VelocityHaptics.error(context) }
+                                )
                             }
                         )
                     }
@@ -499,6 +510,7 @@ fun MainTimelineScreen(
                 // Pure Floating Input Capsule
                 InputCapsule(
                     value = inputText,
+                    enabled = !uiState.isStreaming && !uiState.isLoading,
                     onValueChange = { inputText = it },
                     onSend = {
                         val text = inputText
@@ -512,7 +524,6 @@ fun MainTimelineScreen(
                     },
                     onOptionsClick = {
                         // Opens model & reasoning configuration sheet
-                        VelocityHaptics.lightClick(context)
                         isModelSheetOpen = true
                     }
                 )

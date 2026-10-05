@@ -30,12 +30,17 @@ sealed class ChatStreamEvent {
 @Serializable
 data class ChatStreamPayload(
     val message: String,
-    val session_id: String = "main",
+    val session_id: String,
     val model: String = "gpt-5.4-mini",
     val thinking_effort: String = "medium",
     val verbosity: String = "low"
 )
 
+@Serializable
+data class ChatStreamCompletion(
+    val text: String = "",
+    val assistant_message_id: String? = null
+)
 
 class SseStreamClient(
     private val baseUrl: String,
@@ -43,7 +48,10 @@ class SseStreamClient(
     private val cfClientSecret: String = ""
 ) {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS) // Indefinite for SSE
@@ -95,10 +103,8 @@ class SseStreamClient(
                             trySend(ChatStreamEvent.ActionProposal(action))
                         }
                         "complete" -> {
-                            val map = json.decodeFromString<Map<String, String?>>(data)
-                            val text = map["text"] ?: ""
-                            val msgId = map["assistant_message_id"]
-                            trySend(ChatStreamEvent.Complete(text, msgId))
+                            val completion = json.decodeFromString<ChatStreamCompletion>(data)
+                            trySend(ChatStreamEvent.Complete(completion.text, completion.assistant_message_id))
                             close()
                         }
                         "error" -> {

@@ -6,6 +6,7 @@ import com.velocity.app.data.api.ChatStreamPayload
 import com.velocity.app.data.api.ChronologyItem
 import com.velocity.app.data.api.CreateScheduleRequest
 import com.velocity.app.data.api.ProposalRespondRequest
+import com.velocity.app.data.api.ProposalRespondResult
 import com.velocity.app.data.api.SaveDocRequest
 import com.velocity.app.data.api.SearchResultItem
 import com.velocity.app.data.api.SseStreamClient
@@ -393,16 +394,13 @@ class ChatRepository(private val config: ServerConfig) {
         }
     }
 
-    suspend fun respondProposal(messageId: String, accept: Boolean): Boolean {
-        return try {
-            val res = api.respondThreadProposal(
-                messageId = messageId,
-                payload = ProposalRespondRequest(if (accept) "accept" else "decline")
-            )
-            res.isSuccessful
-        } catch (_: Exception) {
-            false
-        }
+    suspend fun respondProposal(messageId: String, accept: Boolean): ProposalRespondResult {
+        val res = api.respondThreadProposal(
+            messageId = messageId,
+            payload = ProposalRespondRequest(if (accept) "accept" else "decline")
+        )
+        check(res.isSuccessful) { "Thread proposal failed (HTTP ${res.code()})" }
+        return checkNotNull(res.body()) { "Thread proposal response is empty" }
     }
 
     suspend fun respondAction(actionId: String, confirm: Boolean): Boolean {
@@ -446,4 +444,3 @@ class ChatRepository(private val config: ServerConfig) {
         )
     }
 }
-

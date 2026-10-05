@@ -1,5 +1,8 @@
 package com.velocity.app.ui.components
 
+import android.util.TypedValue
+import android.graphics.Typeface
+import android.widget.TextView
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,22 +13,31 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.velocity.app.data.model.ChatMessage
-import com.velocity.app.ui.theme.MonoTextStyle
+import androidx.core.content.res.ResourcesCompat
+import com.velocity.app.R
 import com.velocity.app.ui.theme.SatoshiFontFamily
 import com.velocity.app.ui.theme.VelocityColors
+import io.noties.markwon.AbstractMarkwonPlugin
+import io.noties.markwon.Markwon
+import io.noties.markwon.core.MarkwonTheme
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
+import io.noties.markwon.ext.tables.TablePlugin
+import io.noties.markwon.ext.tables.TableAwareMovementMethod
+import io.noties.markwon.ext.tasklist.TaskListPlugin
+import io.noties.markwon.movement.MovementMethodPlugin
 
 data class ThreadRollupData(
     val type: String,
@@ -38,6 +50,8 @@ fun ChatCapsule(
     message: ChatMessage,
     onOpenThread: ((String) -> Unit)? = null,
     onOpenArtifact: ((String) -> Unit)? = null,
+    isThread: Boolean = false,
+    streamingStatus: String? = null,
     modifier: Modifier = Modifier
 ) {
     val isUser = message.role == "user"
@@ -200,7 +214,9 @@ fun ChatCapsule(
         }
 
         // 4. Message Capsule
-        if (displayContent.isNotEmpty()) {
+        if (isThread && !isUser) {
+            ThreadResponse(message = message, streamingStatus = streamingStatus)
+        } else if (displayContent.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .widthIn(max = 330.dp)
@@ -237,49 +253,46 @@ fun ChatCapsule(
 fun FormattedMarkdownText(
     content: String,
     isUser: Boolean,
+    isThread: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    // Parse markdown bold and inline code cleanly
-    val annotated = buildAnnotatedString {
-        val parts = content.split("```")
-        for (i in parts.indices) {
-            val part = parts[i]
-            if (i % 2 == 1) {
-                // Code Block
-                withStyle(
-                    SpanStyle(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp,
-                        color = Color(0xFF38BDF8)
-                    )
-                ) {
-                    append("\n" + part.trim() + "\n")
-                }
-            } else {
-                // Prose text: handle **bold**
-                val subParts = part.split("**")
-                for (j in subParts.indices) {
-                    val sub = subParts[j]
-                    if (j % 2 == 1) {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = if (isUser) Color.White else Color(0xFFF4F4F5))) {
-                            append(sub)
-                        }
-                    } else {
-                        append(sub)
+    val context = LocalContext.current
+    val markwon = remember(context, isThread) {
+        Markwon.builder(context)
+            .usePlugin(StrikethroughPlugin.create())
+            .usePlugin(TablePlugin.create(context))
+            .usePlugin(TaskListPlugin.create(context))
+            .usePlugin(MovementMethodPlugin.create(TableAwareMovementMethod.create()))
+            .usePlugin(object : AbstractMarkwonPlugin() {
+                override fun configureTheme(builder: MarkwonTheme.Builder) {
+                    builder
+                        .linkColor(Color(0xFF38BDF8).toArgb())
+                        .codeTextColor(Color(0xFF38BDF8).toArgb())
+                        .codeBackgroundColor((if (isThread) Color.Transparent else Color(0xFF202024)).toArgb())
+                        .codeBlockBackgroundColor((if (isThread) Color.Transparent else Color(0xFF202024)).toArgb())
+                        .codeTypeface(ResourcesCompat.getFont(context, R.font.jetbrainsmono_regular) ?: Typeface.MONOSPACE)
+                    if (isThread) {
+                        builder.headingTextSizeMultipliers(floatArrayOf(20f / 15.5f, 18f / 15.5f, 16f / 15.5f, 1f, 1f, 1f))
                     }
                 }
-            }
-        }
+            })
+            .build()
     }
 
-    Text(
-        text = annotated,
-        fontFamily = SatoshiFontFamily,
-        fontSize = 15.sp,
-        fontWeight = FontWeight.Medium,
-        lineHeight = 22.sp,
-        color = if (isUser) Color.White else Color(0xFFD4D4D8),
-        modifier = modifier
+    AndroidView(
+        modifier = modifier,
+        factory = { viewContext ->
+            TextView(viewContext).apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isThread) 15.5f else 15f)
+                typeface = ResourcesCompat.getFont(viewContext, R.font.satoshi_medium)
+                includeFontPadding = false
+                setLineSpacing(0f, if (isThread) 1.55f else 22f / 15f)
+            }
+        },
+        update = { textView ->
+            textView.setTextColor((if (isUser) Color.White else Color(0xFFD4D4D8)).toArgb())
+            markwon.setMarkdown(textView, content)
+        }
     )
 }
 

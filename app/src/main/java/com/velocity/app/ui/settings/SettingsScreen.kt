@@ -581,7 +581,7 @@ private fun GeneralTabSubpage(
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF2B1214))
                             .clickable {
-                                VelocityHaptics.error(context)
+                                VelocityHaptics.lightClick(context)
                                 onDisconnect()
                             }
                             .padding(vertical = 12.dp),

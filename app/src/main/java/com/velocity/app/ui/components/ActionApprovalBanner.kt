@@ -177,6 +177,7 @@ fun ProposalApprovalCard(
     reason: String,
     onDecline: () -> Unit,
     onApprove: () -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -236,7 +237,7 @@ fun ProposalApprovalCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .clickable { onDecline() }
+                    .clickable(enabled = enabled) { onDecline() }
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Text(
@@ -251,8 +252,8 @@ fun ProposalApprovalCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color.White)
-                    .clickable { onApprove() }
+                    .background(if (enabled) Color.White else Color(0xFF71717A))
+                    .clickable(enabled = enabled) { onApprove() }
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Text(

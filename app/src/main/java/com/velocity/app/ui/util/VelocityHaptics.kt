@@ -1,82 +1,44 @@
 package com.velocity.app.ui.util
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
+import android.view.HapticFeedbackConstants
 
 object VelocityHaptics {
 
-    private fun getVibrator(context: Context): Vibrator? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-            vibratorManager?.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        }
+    private tailrec fun findActivity(context: Context): Activity? = when (context) {
+        is Activity -> context
+        is ContextWrapper -> if (context.baseContext !== context) findActivity(context.baseContext) else null
+        else -> null
     }
 
-    /**
-     * Subtle, tactile click for button presses, navigation events, and menu toggles.
-     */
+    private fun perform(context: Context, feedback: Int) {
+        findActivity(context)?.window?.decorView?.performHapticFeedback(feedback)
+    }
+
     fun lightClick(context: Context) {
-        val vibrator = getVibrator(context) ?: return
-        if (!vibrator.hasVibrator()) return
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
-        } else {
-            vibrator.vibrate(VibrationEffect.createOneShot(15, 80))
-        }
+        perform(context, HapticFeedbackConstants.VIRTUAL_KEY)
     }
 
-    /**
-     * Ultra-light tick for typing, list scrolling, or micro interactions.
-     */
     fun subtleTick(context: Context) {
-        val vibrator = getVibrator(context) ?: return
-        if (!vibrator.hasVibrator()) return
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
-        } else {
-            vibrator.vibrate(VibrationEffect.createOneShot(8, 40))
-        }
+        perform(context, HapticFeedbackConstants.CLOCK_TICK)
     }
 
-    /**
-     * Confirming double-pulse for successful action or message send.
-     */
     fun success(context: Context) {
-        val vibrator = getVibrator(context) ?: return
-        if (!vibrator.hasVibrator()) return
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val timings = longArrayOf(0, 15, 60, 20)
-            val amplitudes = intArrayOf(0, 100, 0, 160)
-            vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+        perform(context, if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            HapticFeedbackConstants.CONFIRM
         } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(longArrayOf(0, 15, 60, 20), -1)
-        }
+            HapticFeedbackConstants.VIRTUAL_KEY
+        })
     }
 
-    /**
-     * Distinct triple-pulse for errors or declined actions.
-     */
     fun error(context: Context) {
-        val vibrator = getVibrator(context) ?: return
-        if (!vibrator.hasVibrator()) return
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val timings = longArrayOf(0, 25, 40, 25, 40, 25)
-            val amplitudes = intArrayOf(0, 180, 0, 180, 0, 180)
-            vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+        perform(context, if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            HapticFeedbackConstants.REJECT
         } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(longArrayOf(0, 25, 40, 25, 40, 25), -1)
-        }
+            HapticFeedbackConstants.LONG_PRESS
+        })
     }
 }

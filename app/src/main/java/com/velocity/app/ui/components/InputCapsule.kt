@@ -34,6 +34,7 @@ fun InputCapsule(
     onSend: () -> Unit,
     placeholder: String = "Message velocity...",
     onOptionsClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -85,12 +86,7 @@ fun InputCapsule(
             }
             BasicTextField(
                 value = value,
-                onValueChange = {
-                    if (it.length > value.length && it.length % 5 == 0) {
-                        VelocityHaptics.subtleTick(context)
-                    }
-                    onValueChange(it)
-                },
+                onValueChange = onValueChange,
                 textStyle = TextStyle(
                     color = VelocityColors.TextPrimary,
                     fontSize = 15.sp,
@@ -113,9 +109,9 @@ fun InputCapsule(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(Color.White)
-                    .clickable {
-                        VelocityHaptics.success(context)
+                    .background(if (enabled) Color.White else Color(0xFF71717A))
+                    .clickable(enabled = enabled) {
+                        VelocityHaptics.lightClick(context)
                         onSend()
                     },
                 contentAlignment = Alignment.Center

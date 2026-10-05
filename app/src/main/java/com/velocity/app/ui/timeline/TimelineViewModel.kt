@@ -23,6 +23,7 @@ data class TimelineUiState(
     val isBackendOnline: Boolean = true,
     val activeProposal: ThreadProposal? = null,
     val activeProposalMessageId: String? = null,
+    val isRespondingToProposal: Boolean = false,
     val pendingAction: StagedAction? = null,
     val error: String? = null
 )
@@ -57,7 +58,9 @@ class TimelineViewModel : ViewModel() {
             pendingAction = null,
             activeProposal = null,
             activeProposalMessageId = null,
-            isLoading = true
+            isLoading = true,
+            isStreaming = false,
+            streamingStatus = null
         )
         loadMessages()
     }
@@ -78,6 +81,7 @@ class TimelineViewModel : ViewModel() {
                 val pendingAct = msgs.findLast { it.stagedAction != null && it.stagedAction.status == "pending" }?.stagedAction
                 val pendingPropMsg = msgs.findLast { it.threadProposal != null && it.threadProposal.status == "pending" }
 
+                if (_uiState.value.currentSessionId != sessionId) return@launch
                 _uiState.value = _uiState.value.copy(
                     messages = msgs,
                     pendingAction = pendingAct,
@@ -87,6 +91,7 @@ class TimelineViewModel : ViewModel() {
                     isBackendOnline = true
                 )
             } catch (e: Exception) {
+                if (_uiState.value.currentSessionId != sessionId) return@launch
                 _uiState.value = _uiState.value.copy(
                     error = e.message,
                     isLoading = false,
@@ -102,7 +107,7 @@ class TimelineViewModel : ViewModel() {
         thinkingEffort: String = "medium",
         verbosity: String = "low"
     ) {
-        if (text.isBlank()) return
+        if (text.isBlank() || _uiState.value.isStreaming || _uiState.value.isLoading) return
         val repo = repository ?: return
         val sessionId = _uiState.value.currentSessionId
 
@@ -142,12 +147,16 @@ class TimelineViewModel : ViewModel() {
                     thinkingEffort = cleanEffort,
                     verbosity = cleanVerbosity
                 ).collect { event ->
+                    if (_uiState.value.currentSessionId != sessionId) return@collect
                     when (event) {
                         is ChatStreamEvent.Status -> {
                             _uiState.value = _uiState.value.copy(streamingStatus = event.text)
                         }
                         is ChatStreamEvent.Delta -> {
                             updateAssistantMessage(asstMsgId) { it.copy(content = it.content + event.text) }
+                        }
+                        is ChatStreamEvent.ReasoningDelta -> {
+                            updateAssistantMessage(asstMsgId) { it.copy(reasoning = it.reasoning.orEmpty() + event.text) }
                         }
                         is ChatStreamEvent.Proposal -> {
                             _uiState.value = _uiState.value.copy(
@@ -192,6 +201,7 @@ class TimelineViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
+                if (_uiState.value.currentSessionId != sessionId) return@launch
                 updateAssistantMessage(asstMsgId) {
                     it.copy(content = it.content.ifEmpty { "[Connection Error]: ${e.message}" }, isStreaming = false)
                 }
@@ -204,30 +214,43 @@ class TimelineViewModel : ViewModel() {
         }
     }
 
-    fun respondAction(confirm: Boolean) {
+    fun respondAction(confirm: Boolean, onSuccess: () -> Unit = {}, onError: () -> Unit = {}) {
         val repo = repository ?: return
         val action = _uiState.value.pendingAction ?: return
         viewModelScope.launch {
             try {
-                repo.respondAction(action.id, confirm)
+                check(repo.respondAction(action.id, confirm)) { "Action response failed" }
                 _uiState.value = _uiState.value.copy(pendingAction = null)
+                onSuccess()
                 loadMessages()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
+                onError()
             }
         }
     }
 
-    fun respondProposal(accept: Boolean) {
+    fun respondProposal(accept: Boolean, onSuccess: () -> Unit = {}, onError: () -> Unit = {}) {
+        if (_uiState.value.isRespondingToProposal || _uiState.value.isStreaming) return
         val repo = repository ?: return
         val msgId = _uiState.value.activeProposalMessageId ?: return
+        val proposal = _uiState.value.activeProposal ?: return
+        _uiState.value = _uiState.value.copy(isRespondingToProposal = true)
         viewModelScope.launch {
             try {
-                repo.respondProposal(msgId, accept)
-                _uiState.value = _uiState.value.copy(activeProposal = null, activeProposalMessageId = null)
-                loadMessages()
+                val result = repo.respondProposal(msgId, accept)
+                val threadId = result.thread?.id ?: result.proposal?.threadId
+                if (accept) check(!threadId.isNullOrBlank()) { "Accepted proposal did not return a thread" }
+                _uiState.value = _uiState.value.copy(activeProposal = null, activeProposalMessageId = null, isRespondingToProposal = false)
+                onSuccess()
+                if (accept) {
+                    switchSession(checkNotNull(threadId), result.thread?.name ?: proposal.title)
+                } else {
+                    loadMessages()
+                }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message)
+                _uiState.value = _uiState.value.copy(error = e.message, isRespondingToProposal = false)
+                onError()
             }
         }
     }
@@ -238,4 +261,3 @@ class TimelineViewModel : ViewModel() {
         )
     }
 }
-
