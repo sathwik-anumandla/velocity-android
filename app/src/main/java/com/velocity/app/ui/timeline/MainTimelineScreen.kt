@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import com.velocity.app.data.model.ChatMessage
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,11 +57,19 @@ fun MainTimelineScreen(
     onOpenArtifactDetail: ((ArtifactItem) -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
     val isThread = uiState.currentSessionId != "main"
     var inputText by androidx.compose.runtime.saveable.rememberSaveable(uiState.currentSessionId) { mutableStateOf("") }
     var activeArtifactId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-    val listState = rememberLazyListState()
+    val scrollPositions = remember { mutableMapOf<String, Triple<Int, Int, Boolean>>() }
+    val savedPosition = scrollPositions[uiState.currentSessionId]
+    val listState = key(uiState.currentSessionId) { rememberLazyListState(savedPosition?.first ?: 0, savedPosition?.second ?: 0) }
+    var followLatest by remember(uiState.currentSessionId) { mutableStateOf(savedPosition?.third ?: true) }
+    var selectedMessage by remember(uiState.currentSessionId) { mutableStateOf<ChatMessage?>(null) }
+    var editingMessage by remember(uiState.currentSessionId) { mutableStateOf<ChatMessage?>(null) }
+    var confirmEdit by remember { mutableStateOf(false) }
+    var regenerateMessage by remember { mutableStateOf<ChatMessage?>(null) }
 
     var isMenuOpen by remember { mutableStateOf(false) }
     var isModelSheetOpen by remember { mutableStateOf(false) }
@@ -71,27 +83,38 @@ fun MainTimelineScreen(
         viewModel.initRepository(repository)
     }
 
-    // Auto scroll to bottom when new messages arrive or when streaming starts
-    LaunchedEffect(uiState.messages.size, uiState.isStreaming) {
-        if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.size - 1)
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val isDragged by listState.interactionSource.collectIsDraggedAsState()
+    val nearBottom by remember(listState) {
+        derivedStateOf {
+            val layout = listState.layoutInfo
+            val last = layout.visibleItemsInfo.lastOrNull()
+            last == null || (last.index == layout.totalItemsCount - 1 && last.offset + last.size <= layout.viewportEndOffset + 80)
         }
     }
-
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.viewportEndOffset }
-            .collect { viewportEnd ->
-                val lastMessageIndex = uiState.messages.lastIndex
-                if (viewportEnd > 0 && lastMessageIndex >= 0) {
-                    listState.scrollToItem(lastMessageIndex)
-                    val layout = listState.layoutInfo
-                    val lastMessage = layout.visibleItemsInfo.lastOrNull { it.index == lastMessageIndex }
-                    if (lastMessage != null) {
-                        val remaining = lastMessage.offset + lastMessage.size - layout.viewportEndOffset
-                        if (remaining > 0) listState.scrollBy(remaining.toFloat())
-                    }
-                }
+    LaunchedEffect(isDragged) {
+        if (isDragged) followLatest = false else if (nearBottom && uiState.messages.isNotEmpty()) followLatest = true
+    }
+    LaunchedEffect(uiState.currentSessionId, uiState.messages.isNotEmpty()) {
+        if (uiState.messages.isNotEmpty() && savedPosition != null && !followLatest) {
+            listState.scrollToItem(savedPosition.first.coerceAtMost(uiState.messages.lastIndex), savedPosition.second)
+        }
+    }
+    LaunchedEffect(uiState.messages.lastOrNull()?.id, uiState.messages.lastOrNull()?.content?.length, uiState.isStreaming, imeBottom) {
+        if (followLatest && uiState.messages.isNotEmpty()) {
+            val lastIndex = uiState.messages.lastIndex
+            listState.scrollToItem(lastIndex)
+            val layout = listState.layoutInfo
+            layout.visibleItemsInfo.lastOrNull { it.index == lastIndex }?.let { last ->
+                val overflow = last.offset + last.size - layout.viewportEndOffset
+                if (overflow > 0) listState.scrollBy(overflow.toFloat())
             }
+        }
+    }
+    DisposableEffect(listState, uiState.currentSessionId) {
+        val sessionId = uiState.currentSessionId
+        onDispose { scrollPositions[sessionId] = Triple(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, followLatest) }
     }
 
     activeArtifactId?.let { artifactId ->
@@ -423,6 +446,13 @@ fun MainTimelineScreen(
             }
 
             // Chat Message Timeline
+            if (uiState.hasMoreHistory) TextButton(onClick = { viewModel.loadOlderMessages() }, enabled = !uiState.isLoadingOlder && uiState.isBackendOnline) {
+                Text(if (uiState.isLoadingOlder) "Loading older messages…" else "Load older messages")
+            }
+            if (!nearBottom && uiState.messages.isNotEmpty()) TextButton(onClick = {
+                followLatest = true
+                coroutineScope.launch { listState.animateScrollToItem(uiState.messages.lastIndex) }
+            }) { Text("Jump to latest") }
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -435,6 +465,7 @@ fun MainTimelineScreen(
                 items(uiState.messages, key = { it.id }) { msg ->
                     ChatCapsule(
                         message = msg,
+                        onLongPress = { selectedMessage = msg },
                         isThread = isThread,
                         streamingStatus = if (msg.isStreaming) uiState.streamingStatus else null,
                         onOpenThread = { threadId ->
@@ -467,7 +498,7 @@ fun MainTimelineScreen(
                         ProposalApprovalCard(
                             title = prop.title,
                             reason = prop.reason,
-                            enabled = !uiState.isRespondingToProposal && !uiState.isStreaming,
+                            enabled = !uiState.isRespondingToProposal && !uiState.isStreaming && !uiState.isLoading && uiState.isBackendOnline,
                             onDecline = {
                                 viewModel.respondProposal(
                                     accept = false,
@@ -495,6 +526,7 @@ fun MainTimelineScreen(
                     uiState.pendingAction?.let { action ->
                         ActionApprovalCard(
                             action = action,
+                            enabled = !uiState.isRespondingToAction && !uiState.isStreaming && !uiState.isLoading && uiState.isBackendOnline,
                             onDecline = {
                                 viewModel.respondAction(
                                     confirm = false,
@@ -515,6 +547,12 @@ fun MainTimelineScreen(
 
 
                 // Pure Floating Input Capsule
+                editingMessage?.let {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Editing earlier prompt", color = VelocityColors.TextMuted, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { editingMessage = null; inputText = "" }) { Text("Cancel edit") }
+                    }
+                }
                 uiState.error?.let { error ->
                     Text(error, color = VelocityColors.TextMuted, fontSize = 12.sp)
                     Row {
@@ -528,11 +566,16 @@ fun MainTimelineScreen(
                 }
                 InputCapsule(
                     value = inputText,
-                    enabled = !uiState.isStreaming && !uiState.isLoading,
+                    enabled = !uiState.isStreaming && !uiState.isLoading && uiState.isBackendOnline,
                     isStreaming = uiState.isStreaming,
                     onStop = { viewModel.stopResponse() },
                     onValueChange = { inputText = it },
                     onSend = {
+                        if (editingMessage != null) {
+                            confirmEdit = true
+                            return@InputCapsule
+                        }
+                        followLatest = true
                         val text = inputText
                         inputText = ""
                         viewModel.sendMessage(
@@ -549,6 +592,40 @@ fun MainTimelineScreen(
                     }
                 )
             }
+        }
+
+        selectedMessage?.let { message ->
+            val prompt = uiState.messages.takeWhile { it.id != message.id }.lastOrNull { it.role == "user" }
+            com.velocity.app.ui.components.MessageActionsSheet(
+                message, canModify = !uiState.isStreaming && !uiState.isLoading && uiState.isBackendOnline,
+                canRegenerate = prompt != null, onDismiss = { selectedMessage = null },
+                onEdit = { editingMessage = message; inputText = message.content; selectedMessage = null },
+                onRegenerate = { regenerateMessage = message; selectedMessage = null },
+                onBranch = { selectedMessage = null; viewModel.branchMessage(message) }
+            )
+        }
+        if (confirmEdit && editingMessage != null) AlertDialog(
+            onDismissRequest = { confirmEdit = false }, title = { Text("Replace this prompt?") },
+            text = { Text("This replaces the selected prompt and removes later replies from this conversation. Completed external actions are not undone.") },
+            confirmButton = { TextButton(onClick = {
+                val message = editingMessage ?: return@TextButton
+                confirmEdit = false; editingMessage = null; followLatest = true
+                viewModel.editAndSend(message.id, inputText, modelConfig.model, modelConfig.thinkingEffort, modelConfig.verbosity, modelConfig.recallBudget)
+                inputText = ""
+            }) { Text("Replace and send") } },
+            dismissButton = { TextButton(onClick = { confirmEdit = false }) { Text("Cancel") } }
+        )
+        regenerateMessage?.let { message ->
+            val prompt = uiState.messages.takeWhile { it.id != message.id }.lastOrNull { it.role == "user" }
+            AlertDialog(onDismissRequest = { regenerateMessage = null }, title = { Text("Regenerate this response?") },
+                text = { Text("The original prompt and later replies will be replaced. Existing Calendar, Tasks and Gmail actions will not be repeated or undone; regeneration uses read-only tools.") },
+                confirmButton = { TextButton(enabled = prompt != null, onClick = {
+                    prompt ?: return@TextButton
+                    regenerateMessage = null; followLatest = true
+                    viewModel.editAndSend(prompt.id, prompt.content, modelConfig.model, modelConfig.thinkingEffort, modelConfig.verbosity, modelConfig.recallBudget, message.content.take(29000))
+                }) { Text("Regenerate") } },
+                dismissButton = { TextButton(onClick = { regenerateMessage = null }) { Text("Cancel") } }
+            )
         }
 
         // Apple Bottom Sheet Host for Threads, Documents, Search, Chronology

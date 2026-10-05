@@ -402,6 +402,7 @@ private fun GeneralTabSubpage(
             modifier = Modifier.fillMaxWidth()
         ) {
             // Primary Model
+            item { DeploymentInfo(repository) }
             item {
                 SectionCard(title = "PRIMARY INFERENCE MODEL", subtitle = "High-speed vs. deep architecture reasoning model.") {
                     supportedModels.forEach { (mId, mDesc) ->

@@ -34,7 +34,42 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
 
 
-class ChatRepository(private val config: ServerConfig) {
+class ChatRepository(private val config: ServerConfig, context: android.content.Context? = null) {
+    private val historyCache = context?.let { HistoryCache(it, config) }
+
+    suspend fun cachedHistory(sessionId: String) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { historyCache?.read(sessionId) }
+
+    suspend fun cachedThreads() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { historyCache?.readThreads() ?: emptyList() }
+
+    suspend fun registerVisitedThread(sessionId: String, title: String) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { historyCache?.registerVisitedThread(sessionId, title) }
+
+    suspend fun cacheMessages(sessionId: String, messages: List<ChatMessage>) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { historyCache?.saveMessages(sessionId, messages) }
+
+    suspend fun fetchHistory(sessionId: String, before: String? = null): com.velocity.app.data.model.MessagePage {
+        val response = api.getHistory(sessionId, before)
+        check(response.isSuccessful) { "History unavailable (HTTP ${response.code()}). Update the backend or reload the conversation." }
+        val page = checkNotNull(response.body())
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { historyCache?.writePage(sessionId, page, before == null) }
+        return page
+    }
+
+    suspend fun truncateHistory(sessionId: String, messageId: String) {
+        val response = api.truncateHistory(sessionId, messageId)
+        check(response.isSuccessful) { "Cannot edit history (HTTP ${response.code()})" }
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { historyCache?.invalidate(sessionId) }
+    }
+
+    suspend fun branchMessage(sessionId: String, messageId: String): ThreadItem {
+        val response = api.branchMessage(sessionId, messageId, mapOf("name" to "Branched conversation"))
+        check(response.isSuccessful) { "Cannot branch message (HTTP ${response.code()})" }
+        return checkNotNull(response.body())
+    }
+
+    suspend fun fetchVersion(): com.velocity.app.data.model.DeploymentVersion {
+        val response = api.getVersion()
+        check(response.isSuccessful) { "Version unavailable" }
+        return checkNotNull(response.body())
+    }
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -154,18 +189,22 @@ class ChatRepository(private val config: ServerConfig) {
     suspend fun fetchThreads(): List<ThreadItem> {
         return try {
             val res = api.getThreads()
-            if (!res.isSuccessful) return emptyList()
-            val raw = res.body()?.string() ?: return emptyList()
+            check(res.isSuccessful) { "Threads unavailable (HTTP ${res.code()})" }
+            val raw = checkNotNull(res.body()?.string())
             val element = json.parseToJsonElement(raw)
-            if (element is kotlinx.serialization.json.JsonObject && element.containsKey("threads")) {
+            val threads = if (element is kotlinx.serialization.json.JsonObject && element.containsKey("threads")) {
                 json.decodeFromJsonElement<List<ThreadItem>>(element.jsonObject["threads"]!!)
             } else if (element is kotlinx.serialization.json.JsonArray) {
                 json.decodeFromJsonElement<List<ThreadItem>>(element)
             } else {
-                emptyList()
+                error("Unsupported thread response")
             }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { historyCache?.saveThreads(threads) }
+            threads
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
-            emptyList()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { historyCache?.readThreads() ?: emptyList() }
         }
     }
 
@@ -414,7 +453,9 @@ class ChatRepository(private val config: ServerConfig) {
             actionId,
             ActionResponseRequest(if (confirm) "confirm" else "decline")
         )
-        return res.isSuccessful
+        if (!res.isSuccessful) return false
+        val action = res.body() ?: return false
+        return action.status in setOf("executed", "declined")
     }
 
     fun streamTurn(
@@ -424,7 +465,8 @@ class ChatRepository(private val config: ServerConfig) {
         thinkingEffort: String = "medium",
         verbosity: String = "low",
         messageId: String,
-        recallBudget: String = "medium"
+        recallBudget: String = "medium",
+        regenerationContext: String? = null
     ): Flow<ChatStreamEvent> {
         val cleanModel = when (model?.lowercase()?.trim()) {
             "gpt-5.4", "flagship", "gpt-5-full" -> "gpt-5.4"
@@ -449,7 +491,8 @@ class ChatRepository(private val config: ServerConfig) {
                 thinking_effort = cleanEffort,
                 verbosity = cleanVerbosity,
                 message_id = messageId,
-                recall_budget = recallBudget
+                recall_budget = recallBudget,
+                regeneration_context = regenerationContext
             )
         )
     }

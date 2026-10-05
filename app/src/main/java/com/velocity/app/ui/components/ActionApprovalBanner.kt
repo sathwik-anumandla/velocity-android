@@ -20,17 +20,22 @@ import com.velocity.app.data.model.StagedAction
 import com.velocity.app.ui.theme.MonoTextStyle
 import com.velocity.app.ui.theme.SatoshiFontFamily
 import com.velocity.app.ui.theme.VelocityColors
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 @Composable
 fun ActionApprovalCard(
     action: StagedAction,
     onDecline: () -> Unit,
     onApprove: () -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val to = action.parameters["to"]?.toString()?.trim('"') ?: "Recipient"
-    val subject = action.parameters["subject"]?.toString()?.trim('"') ?: "(No Subject)"
-    val body = action.parameters["body"]?.toString()?.trim('"') ?: ""
+    val to = action.parameters["to"]?.jsonPrimitive?.contentOrNull ?: "Recipient"
+    val subject = action.parameters["subject"]?.jsonPrimitive?.contentOrNull ?: "(No Subject)"
+    val body = action.parameters["body"]?.jsonPrimitive?.contentOrNull ?: ""
+    val sendAt = action.parameters["send_at"]?.jsonPrimitive?.contentOrNull
+    var expandedBody by remember(action.id) { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -112,6 +117,11 @@ fun ActionApprovalCard(
                 Text(text = "To: ", style = MonoTextStyle, fontSize = 11.sp, color = VelocityColors.TextMuted)
                 Text(text = to, style = MonoTextStyle, fontSize = 11.sp, color = Color.White)
             }
+            for ((field, label) in listOf("cc" to "CC", "bcc" to "BCC", "send_at" to "Send at")) {
+                action.parameters[field]?.jsonPrimitive?.contentOrNull?.let { value ->
+                    Text(text = "$label: $value", style = MonoTextStyle, fontSize = 11.sp, color = Color.White)
+                }
+            }
             Row {
                 Text(text = "Subject: ", style = MonoTextStyle, fontSize = 11.sp, color = VelocityColors.TextMuted)
                 Text(text = subject, style = MonoTextStyle, fontSize = 11.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -122,10 +132,11 @@ fun ActionApprovalCard(
                     style = MonoTextStyle,
                     fontSize = 11.sp,
                     color = Color(0xFFD4D4D8),
-                    maxLines = 3,
+                    maxLines = if (expandedBody) Int.MAX_VALUE else 3,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp)
                 )
+                Text(text = if (expandedBody) "Collapse body" else "Read full body", fontSize = 11.sp, color = Color.White, modifier = Modifier.clickable { expandedBody = !expandedBody })
             }
         }
 
@@ -138,7 +149,7 @@ fun ActionApprovalCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .clickable { onDecline() }
+                    .clickable(enabled = enabled) { onDecline() }
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Text(
@@ -156,11 +167,11 @@ fun ActionApprovalCard(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color.White)
-                    .clickable { onApprove() }
+                    .clickable(enabled = enabled) { onApprove() }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Approve & Execute",
+                    text = if (sendAt == null) "Approve & Send" else "Approve & Schedule",
                     fontFamily = SatoshiFontFamily,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,

@@ -18,6 +18,10 @@ data class TimelineUiState(
     val sessionTitle: String = "velocity",
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
+    val isLoadingOlder: Boolean = false,
+    val hasMoreHistory: Boolean = false,
+    val historyCursor: String? = null,
+    val historyRevision: Long = 0,
     val isStreaming: Boolean = false,
     val streamingStatus: String? = null,
     val isBackendOnline: Boolean = true,
@@ -25,6 +29,7 @@ data class TimelineUiState(
     val activeProposalMessageId: String? = null,
     val isRespondingToProposal: Boolean = false,
     val pendingAction: StagedAction? = null,
+    val isRespondingToAction: Boolean = false,
     val error: String? = null
 )
 
@@ -32,6 +37,8 @@ class TimelineViewModel : ViewModel() {
 
     private var repository: ChatRepository? = null
     private var streamJob: kotlinx.coroutines.Job? = null
+    private var loadJob: kotlinx.coroutines.Job? = null
+    private var cacheJob: kotlinx.coroutines.Job? = null
 
     private val _uiState = MutableStateFlow(TimelineUiState())
     val uiState: StateFlow<TimelineUiState> = _uiState.asStateFlow()
@@ -39,7 +46,6 @@ class TimelineViewModel : ViewModel() {
     fun initRepository(repo: ChatRepository) {
         this.repository = repo
         loadMessages()
-        checkHealth()
     }
 
     fun checkHealth() {
@@ -57,7 +63,11 @@ class TimelineViewModel : ViewModel() {
             currentSessionId = sessionId,
             sessionTitle = newTitle,
             messages = emptyList(),
+            hasMoreHistory = false,
+            historyCursor = null,
+            isLoadingOlder = false,
             pendingAction = null,
+            isRespondingToAction = false,
             activeProposal = null,
             activeProposalMessageId = null,
             isLoading = true,
@@ -71,38 +81,92 @@ class TimelineViewModel : ViewModel() {
     fun loadMessages() {
         val repo = repository ?: return
         val sessionId = _uiState.value.currentSessionId
-
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+        loadJob?.cancel()
+        streamJob?.cancel()
+        cacheJob?.cancel()
+        _uiState.value = _uiState.value.copy(isLoading = true, isStreaming = false, streamingStatus = null)
+        loadJob = viewModelScope.launch {
             try {
-                val msgs = if (sessionId == "main") {
-                    repo.fetchMainMessages()
-                } else {
-                    repo.fetchThreadMessages(sessionId)
-                }
-
-                val pendingAct = msgs.findLast { it.stagedAction != null && it.stagedAction.status == "pending" }?.stagedAction
-                val pendingPropMsg = msgs.findLast { it.threadProposal != null && it.threadProposal.status == "pending" }
-
-                if (_uiState.value.currentSessionId != sessionId) return@launch
-                _uiState.value = _uiState.value.copy(
-                    messages = msgs,
-                    pendingAction = pendingAct,
-                    activeProposal = pendingPropMsg?.threadProposal,
-                    activeProposalMessageId = pendingPropMsg?.id,
-                    isLoading = false,
-                    isBackendOnline = true,
-                    error = msgs.lastOrNull { it.role == "assistant" }?.turnStatus?.takeIf { it in setOf("cancelled", "failed", "interrupted") }?.let { "Response $it. Partial text is saved; restore your message to try again." }
-                )
-                msgs.lastOrNull { it.role == "assistant" && it.turnStatus == "running" }?.let { resumeTurn(it, sessionId) }
-            } catch (e: Exception) {
-                if (_uiState.value.currentSessionId != sessionId) return@launch
-                _uiState.value = _uiState.value.copy(
-                    error = e.message,
-                    isLoading = false,
-                    isBackendOnline = false
-                )
+                repo.cachedHistory(sessionId)?.let { applyPage(it, sessionId, offline = true, loading = true) }
+                val fresh = repo.fetchHistory(sessionId)
+                val combined = repo.cachedHistory(sessionId) ?: fresh
+                applyPage(combined, sessionId, offline = false, loading = false)
+                if (_uiState.value.currentSessionId == sessionId) combined.messages.lastOrNull { it.role == "assistant" && it.turnStatus == "running" }?.let { resumeTurn(it, sessionId) }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                if (_uiState.value.currentSessionId == sessionId) _uiState.value = _uiState.value.copy(isLoading = false, isBackendOnline = false, error = "Showing saved history. ${failure.message}")
             }
+        }
+    }
+
+    private fun applyPage(page: com.velocity.app.data.model.MessagePage, sessionId: String, offline: Boolean, loading: Boolean) {
+        if (_uiState.value.currentSessionId != sessionId) return
+        val title = _uiState.value.sessionTitle
+        repository?.let { repo -> viewModelScope.launch { repo.registerVisitedThread(sessionId, title) } }
+        val proposalMessage = page.messages.findLast { it.threadProposal?.status == "pending" }
+        _uiState.value = _uiState.value.copy(
+            messages = page.messages, hasMoreHistory = page.hasMore, historyCursor = page.oldestCursor,
+            historyRevision = page.historyRevision, isLoading = loading, isBackendOnline = !offline,
+            pendingAction = page.messages.findLast { it.stagedAction?.status == "pending" }?.stagedAction,
+            activeProposal = proposalMessage?.threadProposal, activeProposalMessageId = proposalMessage?.id,
+            error = if (offline) "Saved history · connecting…" else page.messages.lastOrNull { it.role == "assistant" }?.turnStatus?.takeIf { it in setOf("cancelled", "failed", "interrupted") }?.let { "Response $it. Partial text is saved." }
+        )
+    }
+
+    fun loadOlderMessages() {
+        val repo = repository ?: return
+        val state = _uiState.value
+        val cursor = state.historyCursor ?: return
+        if (state.isLoading || state.isLoadingOlder || !state.hasMoreHistory || !state.isBackendOnline) return
+        _uiState.value = state.copy(isLoadingOlder = true)
+        viewModelScope.launch {
+            try {
+                val page = repo.fetchHistory(state.currentSessionId, cursor)
+                if (_uiState.value.currentSessionId != state.currentSessionId) return@launch
+                if (page.historyRevision != state.historyRevision) { loadMessages(); return@launch }
+                _uiState.value = _uiState.value.copy(messages = (page.messages + _uiState.value.messages).distinctBy { it.id }, hasMoreHistory = page.hasMore, historyCursor = page.oldestCursor, isLoadingOlder = false)
+            } catch (failure: Exception) {
+                if (_uiState.value.currentSessionId == state.currentSessionId) _uiState.value = _uiState.value.copy(isLoadingOlder = false, error = "Could not load older messages. Reload if history changed: ${failure.message}")
+            }
+        }
+    }
+
+    fun branchMessage(message: ChatMessage) {
+        val repo = repository ?: return
+        if (_uiState.value.isStreaming || !_uiState.value.isBackendOnline) return
+        val sessionId = _uiState.value.currentSessionId
+        viewModelScope.launch {
+            try {
+                val thread = repo.branchMessage(sessionId, message.id)
+                if (_uiState.value.currentSessionId == sessionId) switchSession(thread.id, thread.name)
+            } catch (failure: Exception) { _uiState.value = _uiState.value.copy(error = failure.message) }
+        }
+    }
+
+    fun editAndSend(messageId: String, text: String, model: String, thinkingEffort: String, verbosity: String, recallBudget: String, regenerationContext: String? = null) {
+        val repo = repository ?: return
+        if (_uiState.value.isStreaming || _uiState.value.isLoading || !_uiState.value.isBackendOnline) return
+        val state = _uiState.value
+        _uiState.value = state.copy(isLoading = true)
+        viewModelScope.launch {
+            try {
+                repo.truncateHistory(state.currentSessionId, messageId)
+                if (_uiState.value.currentSessionId != state.currentSessionId) return@launch
+                val page = repo.fetchHistory(state.currentSessionId)
+                applyPage(page, state.currentSessionId, offline = false, loading = false)
+                sendMessage(text, model, thinkingEffort, verbosity, recallBudget, regenerationContext)
+            } catch (failure: Exception) { if (_uiState.value.currentSessionId == state.currentSessionId) _uiState.value = _uiState.value.copy(isLoading = false, error = failure.message) }
+        }
+    }
+
+    private fun persistHistory() {
+        val repo = repository ?: return
+        val state = _uiState.value
+        cacheJob?.cancel()
+        cacheJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(300)
+            repo.cacheMessages(state.currentSessionId, state.messages.takeLast(2))
         }
     }
 
@@ -111,9 +175,10 @@ class TimelineViewModel : ViewModel() {
         model: String? = "gpt-5.4-mini",
         thinkingEffort: String = "medium",
         verbosity: String = "low",
-        recallBudget: String = "medium"
+        recallBudget: String = "medium",
+        regenerationContext: String? = null
     ) {
-        if (text.isBlank() || _uiState.value.isStreaming || _uiState.value.isLoading) return
+        if (text.isBlank() || _uiState.value.isStreaming || _uiState.value.isLoading || !_uiState.value.isBackendOnline) return
         val repo = repository ?: return
         val sessionId = _uiState.value.currentSessionId
         val turnId = UUID.randomUUID().toString()
@@ -125,7 +190,8 @@ class TimelineViewModel : ViewModel() {
             ),
             isStreaming = true, streamingStatus = "Thinking…", error = null
         )
-        collectTurn(repo.streamTurn(text, sessionId, model, thinkingEffort, verbosity, turnId, recallBudget), sessionId, assistantId)
+        persistHistory()
+        collectTurn(repo.streamTurn(text, sessionId, model, thinkingEffort, verbosity, turnId, recallBudget, regenerationContext), sessionId, assistantId)
     }
 
     private fun resumeTurn(message: ChatMessage, sessionId: String) {
@@ -137,6 +203,7 @@ class TimelineViewModel : ViewModel() {
     }
 
     private fun collectTurn(events: kotlinx.coroutines.flow.Flow<ChatStreamEvent>, sessionId: String, assistantId: String) {
+        val repo = repository ?: return
         streamJob?.cancel()
         streamJob = viewModelScope.launch {
             try {
@@ -168,6 +235,18 @@ class TimelineViewModel : ViewModel() {
                             _uiState.value = _uiState.value.copy(isStreaming = false, streamingStatus = null, error = event.message)
                         }
                     }
+                    persistHistory()
+                }
+                if (_uiState.value.currentSessionId == sessionId && !_uiState.value.isStreaming) {
+                    cacheJob?.cancel()
+                    try {
+                        val fresh = repo.fetchHistory(sessionId)
+                        applyPage(repo.cachedHistory(sessionId) ?: fresh, sessionId, offline = false, loading = false)
+                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        persistHistory()
+                    }
                 }
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
@@ -175,6 +254,7 @@ class TimelineViewModel : ViewModel() {
                 if (_uiState.value.currentSessionId == sessionId) {
                     updateAssistantMessage(assistantId) { it.copy(isStreaming = false, turnStatus = "interrupted") }
                     _uiState.value = _uiState.value.copy(isStreaming = false, streamingStatus = null, error = "Connection lost. Reload to recover the response: ${error.message}")
+                    persistHistory()
                 }
             }
         }
@@ -203,23 +283,28 @@ class TimelineViewModel : ViewModel() {
     }
 
     fun respondAction(confirm: Boolean, onSuccess: () -> Unit = {}, onError: () -> Unit = {}) {
+        if (_uiState.value.isRespondingToAction || _uiState.value.isStreaming || _uiState.value.isLoading || !_uiState.value.isBackendOnline) return
         val repo = repository ?: return
         val action = _uiState.value.pendingAction ?: return
+        val sessionId = _uiState.value.currentSessionId
+        _uiState.value = _uiState.value.copy(isRespondingToAction = true)
         viewModelScope.launch {
             try {
                 check(repo.respondAction(action.id, confirm)) { "Action response failed" }
-                _uiState.value = _uiState.value.copy(pendingAction = null)
+                if (_uiState.value.currentSessionId != sessionId) return@launch
+                _uiState.value = _uiState.value.copy(pendingAction = null, isRespondingToAction = false)
                 onSuccess()
                 loadMessages()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message)
+                if (_uiState.value.currentSessionId != sessionId) return@launch
+                _uiState.value = _uiState.value.copy(error = e.message, isRespondingToAction = false)
                 onError()
             }
         }
     }
 
     fun respondProposal(accept: Boolean, onSuccess: () -> Unit = {}, onError: () -> Unit = {}) {
-        if (_uiState.value.isRespondingToProposal || _uiState.value.isStreaming) return
+        if (_uiState.value.isRespondingToProposal || _uiState.value.isStreaming || _uiState.value.isLoading || !_uiState.value.isBackendOnline) return
         val repo = repository ?: return
         val msgId = _uiState.value.activeProposalMessageId ?: return
         val proposal = _uiState.value.activeProposal ?: return

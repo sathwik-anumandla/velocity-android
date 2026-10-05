@@ -3,6 +3,8 @@ package com.velocity.app.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +39,7 @@ data class ThreadRollupData(
     val summary: String
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatCapsule(
     message: ChatMessage,
@@ -44,6 +47,7 @@ fun ChatCapsule(
     onOpenArtifact: ((String) -> Unit)? = null,
     isThread: Boolean = false,
     streamingStatus: String? = null,
+    onLongPress: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isUser = message.role == "user"
@@ -82,6 +86,7 @@ fun ChatCapsule(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (onLongPress != null) Modifier.combinedClickable(onClick = {}, onLongClickLabel = "Message actions", onLongClick = onLongPress) else Modifier)
             .padding(vertical = 4.dp),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
@@ -207,7 +212,7 @@ fun ChatCapsule(
 
         // 4. Message Capsule
         if (isThread && !isUser) {
-            ThreadResponse(message = message, streamingStatus = streamingStatus)
+            ThreadResponse(message = message, streamingStatus = streamingStatus, selectable = onLongPress == null)
         } else if (displayContent.isNotEmpty()) {
             Box(
                 modifier = Modifier
@@ -223,7 +228,8 @@ fun ChatCapsule(
 
                     FormattedMarkdownText(
                         content = displayContent,
-                        isUser = isUser
+                        isUser = isUser,
+                        selectable = onLongPress == null
                     )
                 }
             }
@@ -246,6 +252,7 @@ fun FormattedMarkdownText(
     content: String,
     isUser: Boolean,
     isThread: Boolean = false,
+    selectable: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val textColor = if (isUser) Color.White else Color(0xFFD4D4D8)
@@ -266,7 +273,7 @@ fun FormattedMarkdownText(
     )
     val codeBackground = if (isThread) Color.Transparent else Color(0xFF202024)
 
-    SelectionContainer(modifier = modifier) {
+    val rendered: @Composable () -> Unit = {
         Markdown(
             content = content,
             modifier = Modifier.fillMaxWidth(),
@@ -301,6 +308,7 @@ fun FormattedMarkdownText(
             animations = markdownAnimations(animateTextSize = { this })
         )
     }
+    if (selectable) SelectionContainer(modifier = modifier) { rendered() } else Box(modifier) { rendered() }
 }
 
 @Composable

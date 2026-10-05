@@ -42,7 +42,8 @@ data class ChatStreamPayload(
     val thinking_effort: String = "medium",
     val verbosity: String = "low",
     val message_id: String,
-    val recall_budget: String = "medium"
+    val recall_budget: String = "medium",
+    val regeneration_context: String? = null
 )
 
 @Serializable

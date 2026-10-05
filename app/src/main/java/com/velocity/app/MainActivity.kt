@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
                         label = "screen_transition"
                     ) { config ->
                         if (config != null && config.isPaired) {
-                            val repository = remember(config) { ChatRepository(config) }
+                            val repository = remember(config) { ChatRepository(config, applicationContext) }
 
                             MainTimelineScreen(
                                 repository = repository,

@@ -146,6 +146,8 @@ private fun ThreadsSheetContent(
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
+        threads = repository.cachedThreads()
+        isLoading = threads.isEmpty()
         threads = withContext(Dispatchers.IO) { repository.fetchThreads() }
         isLoading = false
     }

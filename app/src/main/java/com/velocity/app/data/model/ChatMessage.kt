@@ -19,6 +19,7 @@ data class ChatMessage(
     val id: String = "",
     val role: String = "assistant", // "user", "assistant", "system"
     val content: String = "",
+    @SerialName("history_index") val historyIndex: Long = 0,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("is_streaming") val isStreaming: Boolean = false,
     @Serializable(with = ThreadProposalFlexibleSerializer::class)

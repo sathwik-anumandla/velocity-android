@@ -11,6 +11,17 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface VelocityApiService {
+    @GET("api/version")
+    suspend fun getVersion(): Response<com.velocity.app.data.model.DeploymentVersion>
+
+    @GET("api/sessions/{id}/history")
+    suspend fun getHistory(@Path("id") id: String, @Query("before") before: String? = null, @Query("limit") limit: Int = 40): Response<com.velocity.app.data.model.MessagePage>
+
+    @DELETE("api/sessions/{id}/messages")
+    suspend fun truncateHistory(@Path("id") id: String, @Query("from_message_id") messageId: String): Response<ResponseBody>
+
+    @POST("api/sessions/{id}/messages/{message}/branch")
+    suspend fun branchMessage(@Path("id") id: String, @Path("message") messageId: String, @Body payload: Map<String, String>): Response<ThreadItem>
 
     @GET("sessions/main")
     suspend fun getMainSessionRaw(): Response<ResponseBody>

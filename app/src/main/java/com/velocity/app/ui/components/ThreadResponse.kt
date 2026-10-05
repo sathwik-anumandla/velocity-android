@@ -35,7 +35,7 @@ import com.velocity.app.ui.theme.VelocityColors
 import com.velocity.app.ui.util.VelocityHaptics
 
 @Composable
-fun ThreadResponse(message: ChatMessage, streamingStatus: String?, modifier: Modifier = Modifier) {
+fun ThreadResponse(message: ChatMessage, streamingStatus: String?, modifier: Modifier = Modifier, selectable: Boolean = true) {
     val context = LocalContext.current
     var reasoningExpanded by remember(message.id) { mutableStateOf(false) }
 
@@ -94,6 +94,7 @@ fun ThreadResponse(message: ChatMessage, streamingStatus: String?, modifier: Mod
                 content = message.content,
                 isUser = false,
                 isThread = true,
+                selectable = selectable,
                 modifier = Modifier.fillMaxWidth()
             )
         }
