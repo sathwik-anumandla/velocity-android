@@ -43,6 +43,22 @@ data class UsagePeriod(
 )
 
 @Serializable
+data class DailyUsage(
+    val date: String,
+    val calls: Long = 0,
+    @SerialName("total_tokens") val totalTokens: Long = 0,
+    @SerialName("cost_usd") val costUsd: Double = 0.0,
+    @SerialName("unpriced_calls") val unpricedCalls: Long = 0,
+    @SerialName("unreported_calls") val unreportedCalls: Long = 0
+)
+
+@Serializable
+data class UsageBreakdown(
+    @SerialName("by_model") val byModel: List<UsagePeriod> = emptyList(),
+    @SerialName("by_source") val bySource: List<UsagePeriod> = emptyList()
+)
+
+@Serializable
 data class UsageStats(
     val settings: UsageSettings,
     val today: UsagePeriod,
@@ -50,5 +66,7 @@ data class UsageStats(
     @SerialName("all_time") val allTime: UsagePeriod,
     @SerialName("by_model") val byModel: List<UsagePeriod> = emptyList(),
     @SerialName("by_source") val bySource: List<UsagePeriod> = emptyList(),
+    val breakdowns: Map<String, UsageBreakdown> = emptyMap(),
+    val daily: List<DailyUsage> = emptyList(),
     val coverage: String = ""
 )
