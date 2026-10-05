@@ -27,11 +27,11 @@ interface VelocityApiService {
     @POST("api/threads")
     suspend fun createThread(@Body payload: CreateThreadRequest): Response<ThreadItem>
 
-    @GET("api/threads/{id}/messages")
+    @GET("api/sessions/{id}/messages")
     suspend fun getThreadMessages(@Path("id") threadId: String): Response<List<ChatMessage>>
 
-    @POST("api/threads/{id}/conclude")
-    suspend fun concludeThread(@Path("id") threadId: String): Response<Map<String, String>>
+    @POST("api/threads/{id}/rollup")
+    suspend fun concludeThread(@Path("id") threadId: String, @Query("conclude") conclude: Boolean = true): Response<ResponseBody>
 
     @GET("api/artifacts")
     suspend fun getArtifacts(): Response<ResponseBody>
@@ -61,7 +61,7 @@ interface VelocityApiService {
     suspend fun respondAction(
         @Path("id") actionId: String,
         @Body payload: ActionResponseRequest
-    ): Response<Map<String, String>>
+    ): Response<com.velocity.app.data.model.StagedAction>
 
     @GET("api/memory/doc")
     suspend fun getMemoryDoc(@Query("path") path: String): Response<ResponseBody>
@@ -87,8 +87,20 @@ interface VelocityApiService {
         @Body payload: ProposalRespondRequest
     ): Response<ProposalRespondResult>
 
-    @POST("api/auth/google/disconnect")
+    @DELETE("api/integrations/google")
     suspend fun disconnectGoogle(): Response<ResponseBody>
+
+    @GET("api/usage")
+    suspend fun getUsage(): Response<com.velocity.app.data.model.UsageStats>
+
+    @PUT("api/usage/prices")
+    suspend fun saveUsagePrices(@Body pricing: com.velocity.app.data.model.UsagePricing): Response<com.velocity.app.data.model.UsageStats>
+
+    @POST("api/chat/turns/{id}/cancel")
+    suspend fun cancelTurn(@Path("id") id: String): Response<ResponseBody>
+
+    @GET("api/artifacts/{id}/export/pdf")
+    suspend fun exportArtifactPdf(@Path("id") id: String): Response<ResponseBody>
 
     @GET("health")
     suspend fun getHealth(): Response<Map<String, String>>
@@ -158,5 +170,5 @@ data class ChronologyItem(
     val title: String = "",
     val description: String? = null,
     val timestamp: String? = null,
-    val metadata: Map<String, String>? = null
+    val metadata: Map<String, kotlinx.serialization.json.JsonElement>? = null
 )

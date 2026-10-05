@@ -755,7 +755,7 @@ private fun ChronologySheetContent(
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color(0xFF1A1A1E))
                             .clickable {
-                                ev.metadata?.get("thread_id")?.let { threadId ->
+                                (ev.metadata?.get("thread_id") as? kotlinx.serialization.json.JsonPrimitive)?.content?.let { threadId ->
                                     VelocityHaptics.lightClick(context)
                                     onSelectThread(threadId)
                                 }

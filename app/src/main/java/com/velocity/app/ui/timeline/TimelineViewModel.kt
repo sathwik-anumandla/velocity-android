@@ -31,6 +31,7 @@ data class TimelineUiState(
 class TimelineViewModel : ViewModel() {
 
     private var repository: ChatRepository? = null
+    private var streamJob: kotlinx.coroutines.Job? = null
 
     private val _uiState = MutableStateFlow(TimelineUiState())
     val uiState: StateFlow<TimelineUiState> = _uiState.asStateFlow()
@@ -50,6 +51,7 @@ class TimelineViewModel : ViewModel() {
     }
 
     fun switchSession(sessionId: String, title: String? = null) {
+        streamJob?.cancel()
         val newTitle = if (sessionId == "main") "velocity" else (title ?: "Thread")
         _uiState.value = _uiState.value.copy(
             currentSessionId = sessionId,
@@ -60,7 +62,8 @@ class TimelineViewModel : ViewModel() {
             activeProposalMessageId = null,
             isLoading = true,
             isStreaming = false,
-            streamingStatus = null
+            streamingStatus = null,
+            error = null
         )
         loadMessages()
     }
@@ -88,8 +91,10 @@ class TimelineViewModel : ViewModel() {
                     activeProposal = pendingPropMsg?.threadProposal,
                     activeProposalMessageId = pendingPropMsg?.id,
                     isLoading = false,
-                    isBackendOnline = true
+                    isBackendOnline = true,
+                    error = msgs.lastOrNull { it.role == "assistant" }?.turnStatus?.takeIf { it in setOf("cancelled", "failed", "interrupted") }?.let { "Response $it. Partial text is saved; restore your message to try again." }
                 )
+                msgs.lastOrNull { it.role == "assistant" && it.turnStatus == "running" }?.let { resumeTurn(it, sessionId) }
             } catch (e: Exception) {
                 if (_uiState.value.currentSessionId != sessionId) return@launch
                 _uiState.value = _uiState.value.copy(
@@ -105,113 +110,96 @@ class TimelineViewModel : ViewModel() {
         text: String,
         model: String? = "gpt-5.4-mini",
         thinkingEffort: String = "medium",
-        verbosity: String = "low"
+        verbosity: String = "low",
+        recallBudget: String = "medium"
     ) {
         if (text.isBlank() || _uiState.value.isStreaming || _uiState.value.isLoading) return
         val repo = repository ?: return
         val sessionId = _uiState.value.currentSessionId
-
-        val userMsgId = UUID.randomUUID().toString()
-        val asstMsgId = UUID.randomUUID().toString()
-
-        val userMsg = ChatMessage(id = userMsgId, role = "user", content = text)
-        val asstMsg = ChatMessage(id = asstMsgId, role = "assistant", content = "", isStreaming = true)
-
+        val turnId = UUID.randomUUID().toString()
+        val assistantId = "$turnId:assistant"
         _uiState.value = _uiState.value.copy(
-            messages = _uiState.value.messages + listOf(userMsg, asstMsg),
-            isStreaming = true,
-            streamingStatus = "Thinking..."
+            messages = _uiState.value.messages + listOf(
+                ChatMessage(id = turnId, role = "user", content = text, turnId = turnId, turnStatus = "running"),
+                ChatMessage(id = assistantId, role = "assistant", isStreaming = true, turnId = turnId, turnStatus = "running")
+            ),
+            isStreaming = true, streamingStatus = "Thinking…", error = null
         )
+        collectTurn(repo.streamTurn(text, sessionId, model, thinkingEffort, verbosity, turnId, recallBudget), sessionId, assistantId)
+    }
 
-        val cleanModel = when (model?.lowercase()?.trim()) {
-            "gpt-5.4", "flagship", "gpt-5-full" -> "gpt-5.4"
-            else -> "gpt-5.4-mini"
-        }
-        val cleanVerbosity = when (verbosity.lowercase().trim()) {
-            "low", "medium", "high" -> verbosity.lowercase().trim()
-            "concise" -> "low"
-            "exhaustive" -> "high"
-            else -> "low"
-        }
-        val cleanEffort = when (thinkingEffort.lowercase().trim()) {
-            "none", "low", "medium", "high", "max" -> thinkingEffort.lowercase().trim()
-            else -> "medium"
-        }
+    private fun resumeTurn(message: ChatMessage, sessionId: String) {
+        val repo = repository ?: return
+        val turnId = message.turnId ?: return
+        updateAssistantMessage(message.id) { it.copy(content = "", reasoning = null, isStreaming = true) }
+        _uiState.value = _uiState.value.copy(isStreaming = true, streamingStatus = "Reconnecting…")
+        collectTurn(repo.resumeTurn(turnId), sessionId, message.id)
+    }
 
-        viewModelScope.launch {
+    private fun collectTurn(events: kotlinx.coroutines.flow.Flow<ChatStreamEvent>, sessionId: String, assistantId: String) {
+        streamJob?.cancel()
+        streamJob = viewModelScope.launch {
             try {
-                repo.streamTurn(
-                    message = text,
-                    sessionId = sessionId,
-                    model = cleanModel,
-                    thinkingEffort = cleanEffort,
-                    verbosity = cleanVerbosity
-                ).collect { event ->
+                events.collect { event ->
                     if (_uiState.value.currentSessionId != sessionId) return@collect
                     when (event) {
-                        is ChatStreamEvent.Status -> {
-                            _uiState.value = _uiState.value.copy(streamingStatus = event.text)
-                        }
-                        is ChatStreamEvent.Delta -> {
-                            updateAssistantMessage(asstMsgId) { it.copy(content = it.content + event.text) }
-                        }
-                        is ChatStreamEvent.ReasoningDelta -> {
-                            updateAssistantMessage(asstMsgId) { it.copy(reasoning = it.reasoning.orEmpty() + event.text) }
-                        }
+                        is ChatStreamEvent.Status -> _uiState.value = _uiState.value.copy(streamingStatus = event.text)
+                        is ChatStreamEvent.Delta -> updateAssistantMessage(assistantId) { it.copy(content = it.content + event.text) }
+                        is ChatStreamEvent.ReasoningDelta -> updateAssistantMessage(assistantId) { it.copy(reasoning = it.reasoning.orEmpty() + event.text) }
                         is ChatStreamEvent.Proposal -> {
-                            _uiState.value = _uiState.value.copy(
-                                activeProposal = event.proposal,
-                                activeProposalMessageId = asstMsgId
-                            )
-                            updateAssistantMessage(asstMsgId) { it.copy(threadProposal = event.proposal) }
+                            updateAssistantMessage(assistantId) { it.copy(threadProposal = event.proposal) }
+                            _uiState.value = _uiState.value.copy(activeProposal = event.proposal, activeProposalMessageId = assistantId)
                         }
-                        is ChatStreamEvent.ArtifactCreated -> {
-                            updateAssistantMessage(asstMsgId) { it.copy(artifact = event.artifact) }
-                        }
+                        is ChatStreamEvent.ArtifactCreated -> updateAssistantMessage(assistantId) { it.copy(artifact = event.artifact) }
                         is ChatStreamEvent.ActionProposal -> {
+                            updateAssistantMessage(assistantId) { it.copy(stagedAction = event.action) }
                             _uiState.value = _uiState.value.copy(pendingAction = event.action)
-                            updateAssistantMessage(asstMsgId) { it.copy(stagedAction = event.action) }
                         }
                         is ChatStreamEvent.Complete -> {
-                            val finalMsgId = event.messageId ?: asstMsgId
-                            updateAssistantMessage(asstMsgId) {
-                                it.copy(
-                                    id = finalMsgId,
-                                    content = if (event.text.isNotEmpty()) event.text else it.content,
-                                    isStreaming = false
-                                )
-                            }
-                            _uiState.value = _uiState.value.copy(
-                                isStreaming = false,
-                                streamingStatus = null,
-                                activeProposalMessageId = if (_uiState.value.activeProposal != null) finalMsgId else _uiState.value.activeProposalMessageId
-                            )
+                            updateAssistantMessage(assistantId) { it.copy(id = event.messageId ?: assistantId, content = event.text, isStreaming = false, turnStatus = "completed") }
+                            _uiState.value = _uiState.value.copy(isStreaming = false, streamingStatus = null, error = null)
+                        }
+                        is ChatStreamEvent.Cancelled -> {
+                            updateAssistantMessage(assistantId) { it.copy(isStreaming = false, turnStatus = "cancelled") }
+                            _uiState.value = _uiState.value.copy(isStreaming = false, streamingStatus = null, error = "Response stopped. Partial text is saved.")
                         }
                         is ChatStreamEvent.Error -> {
-                            updateAssistantMessage(asstMsgId) {
-                                it.copy(content = it.content.ifEmpty { "[Error]: ${event.message}" }, isStreaming = false)
-                            }
-                            _uiState.value = _uiState.value.copy(
-                                isStreaming = false,
-                                streamingStatus = null,
-                                error = event.message
-                            )
+                            updateAssistantMessage(assistantId) { it.copy(isStreaming = false, turnStatus = "failed") }
+                            _uiState.value = _uiState.value.copy(isStreaming = false, streamingStatus = null, error = event.message)
                         }
-                        else -> {}
                     }
                 }
-            } catch (e: Exception) {
-                if (_uiState.value.currentSessionId != sessionId) return@launch
-                updateAssistantMessage(asstMsgId) {
-                    it.copy(content = it.content.ifEmpty { "[Connection Error]: ${e.message}" }, isStreaming = false)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (_uiState.value.currentSessionId == sessionId) {
+                    updateAssistantMessage(assistantId) { it.copy(isStreaming = false, turnStatus = "interrupted") }
+                    _uiState.value = _uiState.value.copy(isStreaming = false, streamingStatus = null, error = "Connection lost. Reload to recover the response: ${error.message}")
                 }
-                _uiState.value = _uiState.value.copy(
-                    isStreaming = false,
-                    streamingStatus = null,
-                    error = e.message
-                )
             }
         }
+    }
+
+    fun stopResponse() {
+        val repo = repository ?: return
+        val sessionId = _uiState.value.currentSessionId
+        val turnId = _uiState.value.messages.lastOrNull { it.role == "assistant" && it.isStreaming }?.turnId ?: return
+        viewModelScope.launch {
+            try {
+                repo.cancelTurn(turnId)
+                if (_uiState.value.currentSessionId == sessionId) {
+                    streamJob?.cancel()
+                    _uiState.value = _uiState.value.copy(isStreaming = false, streamingStatus = null)
+                    loadMessages()
+                }
+            } catch (error: Exception) {
+                if (_uiState.value.currentSessionId == sessionId) _uiState.value = _uiState.value.copy(error = error.message)
+            }
+        }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
     }
 
     fun respondAction(confirm: Boolean, onSuccess: () -> Unit = {}, onError: () -> Unit = {}) {

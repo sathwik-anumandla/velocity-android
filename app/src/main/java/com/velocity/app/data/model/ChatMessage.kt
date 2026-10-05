@@ -27,7 +27,9 @@ data class ChatMessage(
     val artifact: ArtifactItem? = null,
     @Serializable(with = StagedActionFlexibleSerializer::class)
     @SerialName("staged_action") val stagedAction: StagedAction? = null,
-    val reasoning: String? = null
+    val reasoning: String? = null,
+    @SerialName("turn_id") val turnId: String? = null,
+    @SerialName("turn_status") val turnStatus: String? = null
 )
 
 @kotlinx.serialization.ExperimentalSerializationApi

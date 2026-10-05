@@ -1,43 +1,35 @@
 package com.velocity.app.ui.components
 
-import android.util.TypedValue
-import android.graphics.Typeface
-import android.widget.TextView
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.velocity.app.data.model.ChatMessage
-import androidx.core.content.res.ResourcesCompat
-import com.velocity.app.R
+import com.velocity.app.ui.theme.JetBrainsMonoFontFamily
 import com.velocity.app.ui.theme.SatoshiFontFamily
 import com.velocity.app.ui.theme.VelocityColors
-import io.noties.markwon.AbstractMarkwonPlugin
-import io.noties.markwon.Markwon
-import io.noties.markwon.core.MarkwonTheme
-import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
-import io.noties.markwon.ext.tables.TablePlugin
-import io.noties.markwon.ext.tables.TableAwareMovementMethod
-import io.noties.markwon.ext.tasklist.TaskListPlugin
-import io.noties.markwon.movement.MovementMethodPlugin
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
+import com.mikepenz.markdown.model.markdownAnimations
 
 data class ThreadRollupData(
     val type: String,
@@ -256,44 +248,59 @@ fun FormattedMarkdownText(
     isThread: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val markwon = remember(context, isThread) {
-        Markwon.builder(context)
-            .usePlugin(StrikethroughPlugin.create())
-            .usePlugin(TablePlugin.create(context))
-            .usePlugin(TaskListPlugin.create(context))
-            .usePlugin(MovementMethodPlugin.create(TableAwareMovementMethod.create()))
-            .usePlugin(object : AbstractMarkwonPlugin() {
-                override fun configureTheme(builder: MarkwonTheme.Builder) {
-                    builder
-                        .linkColor(Color(0xFF38BDF8).toArgb())
-                        .codeTextColor(Color(0xFF38BDF8).toArgb())
-                        .codeBackgroundColor((if (isThread) Color.Transparent else Color(0xFF202024)).toArgb())
-                        .codeBlockBackgroundColor((if (isThread) Color.Transparent else Color(0xFF202024)).toArgb())
-                        .codeTypeface(ResourcesCompat.getFont(context, R.font.jetbrainsmono_regular) ?: Typeface.MONOSPACE)
-                    if (isThread) {
-                        builder.headingTextSizeMultipliers(floatArrayOf(20f / 15.5f, 18f / 15.5f, 16f / 15.5f, 1f, 1f, 1f))
-                    }
-                }
-            })
-            .build()
-    }
-
-    AndroidView(
-        modifier = modifier,
-        factory = { viewContext ->
-            TextView(viewContext).apply {
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isThread) 15.5f else 15f)
-                typeface = ResourcesCompat.getFont(viewContext, R.font.satoshi_medium)
-                includeFontPadding = false
-                setLineSpacing(0f, if (isThread) 1.55f else 22f / 15f)
-            }
-        },
-        update = { textView ->
-            textView.setTextColor((if (isUser) Color.White else Color(0xFFD4D4D8)).toArgb())
-            markwon.setMarkdown(textView, content)
-        }
+    val textColor = if (isUser) Color.White else Color(0xFFD4D4D8)
+    val accentColor = Color(0xFF38BDF8)
+    val bodyStyle = TextStyle(
+        fontFamily = SatoshiFontFamily,
+        fontSize = if (isThread) 15.5.sp else 15.sp,
+        lineHeight = if (isThread) 24.sp else 22.sp,
+        fontWeight = FontWeight.Medium,
+        color = textColor
     )
+    val headingStyle = bodyStyle.copy(fontWeight = FontWeight.Bold)
+    val codeStyle = bodyStyle.copy(
+        fontFamily = JetBrainsMonoFontFamily,
+        fontSize = 12.5.sp,
+        lineHeight = 18.sp,
+        color = accentColor
+    )
+    val codeBackground = if (isThread) Color.Transparent else Color(0xFF202024)
+
+    SelectionContainer(modifier = modifier) {
+        Markdown(
+            content = content,
+            modifier = Modifier.fillMaxWidth(),
+            colors = markdownColor(
+                text = textColor,
+                codeText = accentColor,
+                inlineCodeText = accentColor,
+                linkText = accentColor,
+                codeBackground = codeBackground,
+                inlineCodeBackground = codeBackground,
+                dividerColor = Color(0xFF3F3F46),
+                tableText = textColor,
+                tableBackground = Color.Transparent
+            ),
+            typography = markdownTypography(
+                h1 = headingStyle.copy(fontSize = 20.sp, lineHeight = 28.sp),
+                h2 = headingStyle.copy(fontSize = 18.sp, lineHeight = 26.sp),
+                h3 = headingStyle.copy(fontSize = 16.sp, lineHeight = 24.sp),
+                h4 = headingStyle,
+                h5 = headingStyle,
+                h6 = headingStyle,
+                text = bodyStyle,
+                paragraph = bodyStyle,
+                ordered = bodyStyle,
+                bullet = bodyStyle,
+                list = bodyStyle,
+                code = codeStyle,
+                inlineCode = codeStyle,
+                quote = bodyStyle.copy(fontSize = 14.sp, fontStyle = FontStyle.Italic),
+                link = bodyStyle.copy(color = accentColor, textDecoration = TextDecoration.Underline)
+            ),
+            animations = markdownAnimations(animateTextSize = { this })
+        )
+    }
 }
 
 @Composable

@@ -35,6 +35,8 @@ fun InputCapsule(
     placeholder: String = "Message velocity...",
     onOptionsClick: (() -> Unit)? = null,
     enabled: Boolean = true,
+    isStreaming: Boolean = false,
+    onStop: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -101,7 +103,7 @@ fun InputCapsule(
 
         // Send Button
         AnimatedVisibility(
-            visible = value.isNotBlank(),
+            visible = value.isNotBlank() || isStreaming,
             enter = scaleIn(),
             exit = scaleOut()
         ) {
@@ -109,14 +111,14 @@ fun InputCapsule(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(if (enabled) Color.White else Color(0xFF71717A))
-                    .clickable(enabled = enabled) {
+                    .background(if (enabled || isStreaming) Color.White else Color(0xFF71717A))
+                    .clickable(enabled = enabled || isStreaming) {
                         VelocityHaptics.lightClick(context)
-                        onSend()
+                        if (isStreaming) onStop() else onSend()
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
+                if (isStreaming) Box(Modifier.size(12.dp).background(Color.Black, RoundedCornerShape(2.dp))) else Icon(
                     painter = painterResource(LucideIcons.ArrowUp),
                     contentDescription = "Send",
                     tint = Color.Black,

@@ -52,7 +52,8 @@ enum class SettingsTab {
     MEMORY,
     PLUGINS,
     SCHEDULES,
-    SKILLS
+    SKILLS,
+    USAGE
 }
 
 @Composable
@@ -89,6 +90,7 @@ fun SettingsScreen(
             label = "settings_tab_nav"
         ) { tab ->
             when (tab) {
+                SettingsTab.USAGE -> UsageScreen(repository) { currentTab = SettingsTab.ROOT }
                 SettingsTab.ROOT -> SettingsRootView(
                     serverConfig = serverConfig,
                     modelConfig = modelConfig,
@@ -276,6 +278,14 @@ private fun SettingsRootView(
                         title = "Skills",
                         subtitle = "Modular technical skills & dynamic instructions",
                         onClick = { onNavigate(SettingsTab.SKILLS) }
+                    )
+                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF222226))
+                    SettingsRowItem(
+                        icon = LucideIcons.Clock,
+                        iconTint = VelocityColors.AccentSky,
+                        title = "Usage",
+                        subtitle = "Tokens, reasoning, cache effectiveness & cost estimates",
+                        onClick = { onNavigate(SettingsTab.USAGE) }
                     )
                 }
             }

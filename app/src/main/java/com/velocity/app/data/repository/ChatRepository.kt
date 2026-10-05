@@ -111,39 +111,45 @@ class ChatRepository(private val config: ServerConfig) {
     }
 
     private suspend fun fetchSessionMessages(sessionId: String): List<ChatMessage> {
-        return try {
-            val res = api.getSessionRaw(sessionId)
-            if (!res.isSuccessful) return emptyList()
-            val raw = res.body()?.string() ?: return emptyList()
-            val element = json.parseToJsonElement(raw)
-
-            val msgArray = when {
-                element is kotlinx.serialization.json.JsonObject && element.containsKey("messages") -> element.jsonObject["messages"]?.jsonArray
-                element is kotlinx.serialization.json.JsonArray -> element
-                else -> null
-            } ?: return emptyList()
-
-            msgArray.mapNotNull { msgElem ->
-                try {
-                    json.decodeFromJsonElement<ChatMessage>(msgElem)
-                } catch (e: Exception) {
-                    try {
-                        val obj = msgElem.jsonObject
-                        val id = obj["id"]?.jsonPrimitive?.content ?: java.util.UUID.randomUUID().toString()
-                        val role = obj["role"]?.jsonPrimitive?.content ?: "assistant"
-                        val content = obj["content"]?.jsonPrimitive?.content ?: ""
-                        val createdAt = obj["created_at"]?.jsonPrimitive?.content
-                        ChatMessage(id = id, role = role, content = content, createdAt = createdAt)
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
-        }
+        val response = api.getSessionRaw(sessionId)
+        check(response.isSuccessful) { "History unavailable (HTTP ${response.code()})" }
+        val element = json.parseToJsonElement(checkNotNull(response.body()).string())
+        val messages = if (element is kotlinx.serialization.json.JsonObject) {
+            checkNotNull(element["messages"])
+        } else element
+        return json.decodeFromJsonElement<List<ChatMessage>>(messages)
     }
+
+    suspend fun fetchUsage(): com.velocity.app.data.model.UsageStats {
+        val response = api.getUsage()
+        check(response.isSuccessful) { "Usage unavailable (HTTP ${response.code()})" }
+        return checkNotNull(response.body())
+    }
+
+    suspend fun saveUsagePrices(pricing: com.velocity.app.data.model.UsagePricing): com.velocity.app.data.model.UsageStats {
+        val response = api.saveUsagePrices(pricing)
+        check(response.isSuccessful) { "Cannot save prices (HTTP ${response.code()})" }
+        return checkNotNull(response.body())
+    }
+
+    suspend fun cancelTurn(id: String) {
+        val response = api.cancelTurn(id)
+        check(response.isSuccessful) { "Cancellation failed (HTTP ${response.code()})" }
+    }
+
+    suspend fun fetchArtifact(id: String): ArtifactItem {
+        val response = api.getArtifact(id)
+        check(response.isSuccessful) { "Document unavailable (HTTP ${response.code()})" }
+        return checkNotNull(response.body())
+    }
+
+    suspend fun exportArtifactPdf(id: String): ByteArray {
+        val response = api.exportArtifactPdf(id)
+        check(response.isSuccessful) { "PDF export failed (HTTP ${response.code()})" }
+        return checkNotNull(response.body()).use { it.bytes() }
+    }
+
+    fun resumeTurn(id: String): Flow<ChatStreamEvent> = sseClient.resumeChat(id)
 
     suspend fun fetchThreads(): List<ThreadItem> {
         return try {
@@ -416,7 +422,9 @@ class ChatRepository(private val config: ServerConfig) {
         sessionId: String = "main",
         model: String? = null,
         thinkingEffort: String = "medium",
-        verbosity: String = "low"
+        verbosity: String = "low",
+        messageId: String,
+        recallBudget: String = "medium"
     ): Flow<ChatStreamEvent> {
         val cleanModel = when (model?.lowercase()?.trim()) {
             "gpt-5.4", "flagship", "gpt-5-full" -> "gpt-5.4"
@@ -439,7 +447,9 @@ class ChatRepository(private val config: ServerConfig) {
                 session_id = sessionId,
                 model = cleanModel,
                 thinking_effort = cleanEffort,
-                verbosity = cleanVerbosity
+                verbosity = cleanVerbosity,
+                message_id = messageId,
+                recall_budget = recallBudget
             )
         )
     }

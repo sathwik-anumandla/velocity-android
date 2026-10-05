@@ -18,6 +18,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,7 +55,8 @@ fun MainTimelineScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val isThread = uiState.currentSessionId != "main"
-    var inputText by remember { mutableStateOf("") }
+    var inputText by androidx.compose.runtime.saveable.rememberSaveable(uiState.currentSessionId) { mutableStateOf("") }
+    var activeArtifactId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
 
     var isMenuOpen by remember { mutableStateOf(false) }
@@ -90,6 +92,11 @@ fun MainTimelineScreen(
                     }
                 }
             }
+    }
+
+    activeArtifactId?.let { artifactId ->
+        com.velocity.app.ui.components.ArtifactScreen(repository, artifactId) { activeArtifactId = null }
+        return
     }
 
     if (isSettingsOpen) {
@@ -434,9 +441,9 @@ fun MainTimelineScreen(
                             VelocityHaptics.lightClick(context)
                             viewModel.switchSession(threadId)
                         },
-                        onOpenArtifact = { _ ->
+                        onOpenArtifact = { artifact ->
                             VelocityHaptics.lightClick(context)
-                            activeSheet = SheetType.DOCUMENTS
+                            activeArtifactId = artifact
                         }
                     )
                 }
@@ -508,9 +515,22 @@ fun MainTimelineScreen(
 
 
                 // Pure Floating Input Capsule
+                uiState.error?.let { error ->
+                    Text(error, color = VelocityColors.TextMuted, fontSize = 12.sp)
+                    Row {
+                        TextButton(onClick = { viewModel.loadMessages() }, enabled = !uiState.isLoading) { Text("Recover / reload") }
+                        TextButton(onClick = {
+                            inputText = uiState.messages.lastOrNull { it.role == "user" }?.content.orEmpty()
+                            viewModel.clearError()
+                        }) { Text("Restore message") }
+                        TextButton(onClick = { viewModel.clearError() }) { Text("Dismiss") }
+                    }
+                }
                 InputCapsule(
                     value = inputText,
                     enabled = !uiState.isStreaming && !uiState.isLoading,
+                    isStreaming = uiState.isStreaming,
+                    onStop = { viewModel.stopResponse() },
                     onValueChange = { inputText = it },
                     onSend = {
                         val text = inputText
@@ -519,7 +539,8 @@ fun MainTimelineScreen(
                             text = text,
                             model = modelConfig.model,
                             thinkingEffort = modelConfig.thinkingEffort,
-                            verbosity = modelConfig.verbosity
+                            verbosity = modelConfig.verbosity,
+                            recallBudget = modelConfig.recallBudget
                         )
                     },
                     onOptionsClick = {
@@ -540,7 +561,8 @@ fun MainTimelineScreen(
                 viewModel.switchSession(threadId)
             },
             onOpenArtifact = { artifact ->
-                onOpenArtifactDetail?.invoke(artifact)
+                activeSheet = SheetType.NONE
+                if (onOpenArtifactDetail != null) onOpenArtifactDetail(artifact) else activeArtifactId = artifact.id
             },
             onDisconnect = onDisconnect
         )
