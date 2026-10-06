@@ -11,7 +11,7 @@ data class ArtifactItem(
     val language: String = "markdown",
     val content: String = "",
     val summary: String? = null,
-    val theme: String = "editorial",
+    val theme: String = "midnight",
     val version: Int = 1,
     @SerialName("session_id") val sessionId: String = "main",
     @SerialName("created_at") val createdAt: String? = null

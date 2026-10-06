@@ -261,14 +261,14 @@ fun FormattedMarkdownText(
     documentTheme: String? = null
 ) {
     val textColor = when (documentTheme) {
-        "midnight" -> Color(0xFFE4E4E7)
+        "midnight", "technical-dark" -> Color(0xFFE4E4E7)
         null -> if (isUser) VelocityColors.TextPrimary else VelocityColors.TextSecondary
         else -> Color(0xFF202023)
     }
-    val accentColor = if (documentTheme == "midnight") Color(0xFF9AA3D0) else if (documentTheme != null) Color(0xFF575F9F) else VelocityColors.Accent
+    val accentColor = if (documentTheme in setOf("midnight", "technical-dark")) Color(0xFF54E6D4) else if (documentTheme != null) Color(0xFF087F73) else VelocityColors.Accent
     val bodyStyle = TextStyle(
         fontFamily = if (documentTheme == "editorial") androidx.compose.ui.text.font.FontFamily.Serif else SatoshiFontFamily,
-        fontSize = if (isThread) 15.5.sp else 15.sp,
+        fontSize = if (documentTheme?.startsWith("technical") == true) 14.sp else if (isThread) 15.5.sp else 15.sp,
         lineHeight = if (isThread) 24.sp else 22.sp,
         fontWeight = FontWeight.Medium,
         color = textColor
@@ -281,7 +281,7 @@ fun FormattedMarkdownText(
         color = accentColor
     )
     val codeBackground = when (documentTheme) {
-        "midnight" -> Color(0xFF0D0D10)
+        "midnight", "technical-dark" -> Color(0xFF0D0D10)
         null -> if (isThread) Color.Transparent else VelocityColors.SurfaceCode
         else -> Color(0xFFF0F0F3)
     }

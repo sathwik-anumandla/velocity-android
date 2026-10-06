@@ -19,7 +19,7 @@ object VelocityColors {
     val TextMuted: Color get() = if (isLight) Color(0xFF62626C) else Color(0xFFA1A1AA)       // Metadata, timestamps, placeholders
     val TextDim: Color get() = if (isLight) Color(0xFF777782) else Color(0xFF71717A)         // De-emphasized details, subtle icons
 
-    val Accent: Color get() = if (isLight) Color(0xFF575F9F) else Color(0xFF9AA3D0)
+    val Accent: Color get() = if (isLight) Color(0xFF087F73) else Color(0xFF54E6D4)
     val AccentBg: Color get() = Accent.copy(alpha = 0.15f)
     val AccentViolet: Color get() = Accent
     val AccentVioletBg: Color get() = AccentBg
