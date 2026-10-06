@@ -68,6 +68,21 @@ fun MainTimelineScreen(
     val savedPosition = scrollPositions[uiState.currentSessionId]
     val listState = key(uiState.currentSessionId) { rememberLazyListState(savedPosition?.first ?: 0, savedPosition?.second ?: 0) }
     var followLatest by remember(uiState.currentSessionId) { mutableStateOf(savedPosition?.third ?: true) }
+    var highlightedMessageId by remember(uiState.currentSessionId) { mutableStateOf<String?>(null) }
+    LaunchedEffect(uiState.jumpMessageId, uiState.isLoading) {
+        val target = uiState.jumpMessageId ?: return@LaunchedEffect
+        followLatest = false
+        if (uiState.isLoading) return@LaunchedEffect
+        val index = uiState.messages.indexOfFirst { it.id == target }
+        if (index >= 0) {
+            listState.scrollToItem(index)
+            highlightedMessageId = target
+            viewModel.clearJumpTarget()
+        }
+    }
+    LaunchedEffect(highlightedMessageId) {
+        if (highlightedMessageId != null) { kotlinx.coroutines.delay(4000); highlightedMessageId = null }
+    }
     var selectedMessage by remember(uiState.currentSessionId) { mutableStateOf<ChatMessage?>(null) }
     var editingMessage by remember(uiState.currentSessionId) { mutableStateOf<ChatMessage?>(null) }
     var confirmEdit by remember { mutableStateOf(false) }
@@ -209,11 +224,11 @@ fun MainTimelineScreen(
 
                 // Center Title (Tapping triggers reload)
                 Text(
-                    text = uiState.sessionTitle,
+                    text = if (uiState.currentSessionId == "main") "Velocity" else uiState.sessionTitle,
                     fontFamily = SatoshiFontFamily,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = VelocityColors.TextPrimary,
+                    color = if (uiState.currentSessionId == "main") VelocityColors.Accent else VelocityColors.TextPrimary,
                     letterSpacing = (-0.5).sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -467,6 +482,7 @@ fun MainTimelineScreen(
                 items(uiState.messages, key = { it.id }) { msg ->
                     ChatCapsule(
                         message = msg,
+                        modifier = if (highlightedMessageId == msg.id) Modifier.background(VelocityColors.AccentBg, RoundedCornerShape(18.dp)) else Modifier,
                         onLongPress = { selectedMessage = msg },
                         isThread = isThread,
                         streamingStatus = if (msg.isStreaming) uiState.streamingStatus else null,
@@ -618,7 +634,7 @@ fun MainTimelineScreen(
             val prompt = uiState.messages.takeWhile { it.id != message.id }.lastOrNull { it.role == "user" }
             com.velocity.app.ui.components.MessageActionsSheet(
                 message, canModify = !uiState.isStreaming && !uiState.isLoading && uiState.isBackendOnline,
-                canRegenerate = prompt != null, onDismiss = { selectedMessage = null },
+                canRegenerate = prompt != null, canBranch = !isThread, onDismiss = { selectedMessage = null },
                 onEdit = { editingMessage = message; inputText = message.content; selectedMessage = null },
                 onRegenerate = { regenerateMessage = message; selectedMessage = null },
                 onBranch = { selectedMessage = null; viewModel.branchMessage(message) }
@@ -657,6 +673,8 @@ fun MainTimelineScreen(
             onSelectThread = { threadId ->
                 viewModel.switchSession(threadId)
             },
+            currentSessionId = uiState.currentSessionId,
+            onSelectMessage = { sessionId, messageId -> viewModel.jumpToMessage(sessionId, messageId) },
             onOpenArtifact = { artifact ->
                 activeSheet = SheetType.NONE
                 if (onOpenArtifactDetail != null) onOpenArtifactDetail(artifact) else activeArtifactId = artifact.id

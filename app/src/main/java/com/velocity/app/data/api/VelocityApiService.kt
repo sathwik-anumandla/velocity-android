@@ -50,11 +50,17 @@ interface VelocityApiService {
     @GET("api/artifacts/{id}")
     suspend fun getArtifact(@Path("id") id: String): Response<ArtifactItem>
 
+    @PATCH("api/artifacts/{id}")
+    suspend fun updateArtifactTheme(@Path("id") id: String, @Body payload: Map<String, String>): Response<ArtifactItem>
+
     @GET("api/navigation/chronology")
     suspend fun getChronology(@Query("limit") limit: Int = 50): Response<ResponseBody>
 
     @GET("search")
     suspend fun searchMessages(@Query("q") query: String): Response<List<SearchResultItem>>
+
+    @GET("api/search")
+    suspend fun searchRepository(@Query("q") query: String, @Query("kind") kind: String, @Query("session_id") sessionId: String?, @Query("role") role: String?, @Query("after") after: String?, @Query("before") before: String?, @Query("offset") offset: Int): Response<com.velocity.app.data.model.RepositorySearchPage>
 
     @GET("api/integrations/status")
     suspend fun getIntegrationStatus(): Response<ResponseBody>

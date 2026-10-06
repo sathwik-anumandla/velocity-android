@@ -59,7 +59,7 @@ fun ActionApprovalCard(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0x26F59E0B)),
+                        .background(VelocityColors.AccentBg),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -92,7 +92,7 @@ fun ActionApprovalCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0x26F59E0B))
+                    .background(VelocityColors.AccentBg)
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
@@ -209,7 +209,7 @@ fun ProposalApprovalCard(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0x26A78BFA)),
+                    .background(VelocityColors.AccentBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

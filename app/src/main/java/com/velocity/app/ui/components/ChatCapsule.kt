@@ -32,6 +32,7 @@ import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 import com.mikepenz.markdown.model.markdownAnimations
+import com.mikepenz.markdown.model.markdownPadding
 
 data class ThreadRollupData(
     val type: String,
@@ -117,7 +118,7 @@ fun ChatCapsule(
                                 modifier = Modifier
                                     .size(28.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0x26A78BFA)),
+                                    .background(VelocityColors.AccentBg),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -139,7 +140,7 @@ fun ChatCapsule(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0x26A78BFA))
+                                .background(VelocityColors.AccentBg)
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
@@ -256,12 +257,17 @@ fun FormattedMarkdownText(
     isUser: Boolean,
     isThread: Boolean = false,
     selectable: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    documentTheme: String? = null
 ) {
-    val textColor = if (isUser) VelocityColors.TextPrimary else VelocityColors.TextSecondary
-    val accentColor = VelocityColors.AccentSky
+    val textColor = when (documentTheme) {
+        "midnight" -> Color(0xFFE4E4E7)
+        null -> if (isUser) VelocityColors.TextPrimary else VelocityColors.TextSecondary
+        else -> Color(0xFF202023)
+    }
+    val accentColor = if (documentTheme == "midnight") Color(0xFF9AA3D0) else if (documentTheme != null) Color(0xFF575F9F) else VelocityColors.Accent
     val bodyStyle = TextStyle(
-        fontFamily = SatoshiFontFamily,
+        fontFamily = if (documentTheme == "editorial") androidx.compose.ui.text.font.FontFamily.Serif else SatoshiFontFamily,
         fontSize = if (isThread) 15.5.sp else 15.sp,
         lineHeight = if (isThread) 24.sp else 22.sp,
         fontWeight = FontWeight.Medium,
@@ -274,12 +280,18 @@ fun FormattedMarkdownText(
         lineHeight = 18.sp,
         color = accentColor
     )
-    val codeBackground = if (isThread) Color.Transparent else VelocityColors.SurfaceCode
+    val codeBackground = when (documentTheme) {
+        "midnight" -> Color(0xFF0D0D10)
+        null -> if (isThread) Color.Transparent else VelocityColors.SurfaceCode
+        else -> Color(0xFFF0F0F3)
+    }
+    val hasBlocks = Regex("(?m)^\\s*(?:[-*+] |\\d+[.)] |```|\\|)").containsMatchIn(content)
 
     val rendered: @Composable () -> Unit = {
         Markdown(
             content = content,
-            modifier = Modifier.wrapContentWidth(),
+            modifier = if (hasBlocks || documentTheme != null) Modifier.fillMaxWidth() else Modifier.wrapContentWidth(),
+            padding = markdownPadding(block = 8.dp, list = 4.dp, listItemBottom = 3.dp, indentList = 16.dp),
             colors = markdownColor(
                 text = textColor,
                 codeText = accentColor,

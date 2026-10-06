@@ -36,6 +36,8 @@ fun ArtifactScreen(repository: ChatRepository, artifactId: String, onBack: () ->
     var busy by remember(artifactId) { mutableStateOf(false) }
     var exporting by remember(artifactId) { mutableStateOf(false) }
     var copied by remember(artifactId) { mutableStateOf(false) }
+    var appearanceOpen by remember(artifactId) { mutableStateOf(false) }
+    var savingAppearance by remember(artifactId) { mutableStateOf(false) }
 
     fun refresh() {
         if (busy) return
@@ -67,6 +69,33 @@ fun ArtifactScreen(repository: ChatRepository, artifactId: String, onBack: () ->
         error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(20.dp)); if (artifact == null) TextButton(onClick = { refresh() }, enabled = !busy) { Text("Try again") } }
         artifact?.let { document ->
             val words = remember(document.content) { document.content.trim().split(Regex("\\s+")).count { it.isNotEmpty() } }
+            val paper = when (document.theme) {
+                "midnight" -> androidx.compose.ui.graphics.Color(0xFF141416)
+                "technical" -> androidx.compose.ui.graphics.Color(0xFFF8F8FA)
+                else -> androidx.compose.ui.graphics.Color.White
+            }
+            val ink = if (document.theme == "midnight") androidx.compose.ui.graphics.Color(0xFFE4E4E7) else androidx.compose.ui.graphics.Color(0xFF202023)
+            val paperAccent = if (document.theme == "midnight") androidx.compose.ui.graphics.Color(0xFF9AA3D0) else androidx.compose.ui.graphics.Color(0xFF575F9F)
+            Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box {
+                    TextButton(enabled = !savingAppearance && !exporting, onClick = { appearanceOpen = true }) { Text(if (savingAppearance) "Saving…" else "Appearance: ${document.theme.replaceFirstChar { it.uppercase() }}") }
+                    DropdownMenu(expanded = appearanceOpen, onDismissRequest = { appearanceOpen = false }) {
+                        listOf("editorial", "clean", "technical", "midnight").forEach { theme ->
+                            DropdownMenuItem(text = { Text(theme.replaceFirstChar { it.uppercase() }) }, onClick = {
+                                appearanceOpen = false
+                                savingAppearance = true
+                                scope.launch {
+                                    try { artifact = repository.updateArtifactTheme(artifactId, theme); error = null }
+                                    catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                                    catch (failure: Exception) { error = failure.message }
+                                    finally { savingAppearance = false }
+                                }
+                            })
+                        }
+                    }
+                }
+                Text("Used for PDF", style = MaterialTheme.typography.labelSmall, color = VelocityColors.TextMuted)
+            }
             FlowRow(Modifier.padding(horizontal = 20.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilledTonalButton(onClick = {
                     (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText(document.title, document.content))
@@ -81,7 +110,7 @@ fun ArtifactScreen(repository: ChatRepository, artifactId: String, onBack: () ->
                         }, "Share document"))
                     } catch (failure: Exception) { error = failure.message }
                 }) { Icon(painterResource(LucideIcons.Share), null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(6.dp)); Text("Share") }
-                FilledTonalButton(enabled = !exporting, onClick = {
+                FilledTonalButton(enabled = !exporting && !savingAppearance, onClick = {
                     exporting = true
                     scope.launch {
                         try {
@@ -105,18 +134,18 @@ fun ArtifactScreen(repository: ChatRepository, artifactId: String, onBack: () ->
                 }) { Icon(painterResource(LucideIcons.Download), null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(6.dp)); Text(if (exporting) "Exporting…" else "PDF") }
             }
             Column(Modifier.weight(1f).fillMaxWidth().background(VelocityColors.SurfaceCard).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                Column(Modifier.fillMaxWidth().background(VelocityColors.Canvas, RoundedCornerShape(20.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(document.artifactType.replace('_', ' ').uppercase(), color = VelocityColors.AccentEmerald, style = MaterialTheme.typography.labelSmall)
-                    Text(document.title, color = VelocityColors.TextPrimary, style = MaterialTheme.typography.headlineLarge)
-                    Text("$words words · ${document.language}", color = VelocityColors.TextMuted, style = MaterialTheme.typography.bodySmall)
-                    if (document.summary.isNotBlank()) Text(document.summary, color = VelocityColors.TextSecondary, style = MaterialTheme.typography.bodyMedium)
+                Column(Modifier.fillMaxWidth().background(paper, RoundedCornerShape(20.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(document.artifactType.replace('_', ' ').uppercase(), color = paperAccent, style = MaterialTheme.typography.labelSmall)
+                    Text(document.title, color = ink, fontFamily = if (document.theme == "editorial") androidx.compose.ui.text.font.FontFamily.Serif else com.velocity.app.ui.theme.SatoshiFontFamily, style = MaterialTheme.typography.headlineLarge)
+                    Text("$words words · ${document.language} · v${document.version}", color = ink.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+                    document.summary?.takeIf { it.isNotBlank() }?.let { Text(it, color = ink, style = MaterialTheme.typography.bodyMedium) }
                 }
-                Column(Modifier.fillMaxWidth().background(VelocityColors.Canvas, RoundedCornerShape(20.dp)).padding(20.dp)) {
+                Column(Modifier.fillMaxWidth().background(paper, RoundedCornerShape(20.dp)).padding(20.dp)) {
                 if (document.language == "markdown") {
-                    FormattedMarkdownText(document.content, isUser = false, isThread = true)
+                    FormattedMarkdownText(document.content, isUser = false, isThread = true, documentTheme = document.theme)
                 } else {
                     androidx.compose.foundation.text.selection.SelectionContainer {
-                        Text(document.content, color = VelocityColors.TextPrimary, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text(document.content, color = ink, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
                     }
                 }
                 }

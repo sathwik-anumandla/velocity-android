@@ -14,7 +14,7 @@ import com.velocity.app.data.model.ChatMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessageActionsSheet(message: ChatMessage, canModify: Boolean, canRegenerate: Boolean, onDismiss: () -> Unit, onEdit: () -> Unit, onRegenerate: () -> Unit, onBranch: () -> Unit) {
+fun MessageActionsSheet(message: ChatMessage, canModify: Boolean, canRegenerate: Boolean, onDismiss: () -> Unit, onEdit: () -> Unit, onRegenerate: () -> Unit, onBranch: () -> Unit, canBranch: Boolean = true) {
     val context = LocalContext.current
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -29,7 +29,7 @@ fun MessageActionsSheet(message: ChatMessage, canModify: Boolean, canRegenerate:
             }) { Text("Share") }
             if (message.role == "user") TextButton(onClick = onEdit, enabled = canModify) { Text("Edit message") }
             if (message.role == "assistant") TextButton(onClick = onRegenerate, enabled = canModify && canRegenerate) { Text("Regenerate response") }
-            TextButton(onClick = onBranch, enabled = canModify) { Text("Branch into a thread") }
+            if (canBranch) TextButton(onClick = onBranch, enabled = canModify) { Text("Branch into a thread") }
             if (!canModify) Text("Connect to the server and stop the active response to edit or branch.")
             if (message.role == "assistant" && !canRegenerate) Text("Load older messages to include the original prompt before regenerating.")
         }

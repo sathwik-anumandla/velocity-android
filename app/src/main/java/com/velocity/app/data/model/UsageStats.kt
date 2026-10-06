@@ -24,6 +24,7 @@ data class UsageSettings(
 data class UsagePeriod(
     val model: String? = null,
     val source: String? = null,
+    @SerialName("conversation_kind") val conversationKind: String? = null,
     val calls: Long = 0,
     @SerialName("input_tokens") val inputTokens: Long = 0,
     @SerialName("output_tokens") val outputTokens: Long = 0,
@@ -55,7 +56,8 @@ data class DailyUsage(
 @Serializable
 data class UsageBreakdown(
     @SerialName("by_model") val byModel: List<UsagePeriod> = emptyList(),
-    @SerialName("by_source") val bySource: List<UsagePeriod> = emptyList()
+    @SerialName("by_source") val bySource: List<UsagePeriod> = emptyList(),
+    @SerialName("by_conversation") val byConversation: List<UsagePeriod> = emptyList()
 )
 
 @Serializable

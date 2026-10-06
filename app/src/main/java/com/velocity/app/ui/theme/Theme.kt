@@ -42,6 +42,12 @@ fun VelocityTheme(content: @Composable () -> Unit) {
         onSurfaceVariant = VelocityColors.TextSecondary,
         surfaceContainer = VelocityColors.SurfaceCard,
         surfaceContainerHigh = VelocityColors.SurfaceElevated,
+        secondary = VelocityColors.Accent,
+        tertiary = VelocityColors.Accent,
+        error = VelocityColors.Accent,
+        onError = VelocityColors.Canvas,
+        errorContainer = VelocityColors.AccentBg,
+        onErrorContainer = VelocityColors.TextPrimary,
         outline = VelocityColors.TextDim
     )
     val view = LocalView.current

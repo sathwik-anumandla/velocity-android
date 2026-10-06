@@ -134,27 +134,10 @@ fun PairingScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Brand Header
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(CircleShape)
-                    .background(VelocityColors.SurfaceCard),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(VelocityColors.TextPrimary)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Text(
                 text = "Velocity",
                 style = VelocityTypography.headlineMedium,
-                color = VelocityColors.TextPrimary,
+                color = VelocityColors.Accent,
                 letterSpacing = (-0.5).sp
             )
 

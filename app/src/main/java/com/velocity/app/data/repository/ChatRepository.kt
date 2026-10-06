@@ -226,6 +226,12 @@ class ChatRepository(private val config: ServerConfig, context: android.content.
         }
     }
 
+    suspend fun updateArtifactTheme(id: String, theme: String): ArtifactItem {
+        val response = api.updateArtifactTheme(id, mapOf("theme" to theme))
+        if (!response.isSuccessful) throw IllegalStateException("Could not save document appearance")
+        return response.body() ?: throw IllegalStateException("Missing updated document")
+    }
+
     suspend fun fetchChronology(): List<ChronologyItem> {
         return try {
             val res = api.getChronology()
@@ -242,6 +248,12 @@ class ChatRepository(private val config: ServerConfig, context: android.content.
         } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    suspend fun searchRepository(query: String, kind: String = "all", sessionId: String? = null, role: String? = null, after: String? = null, before: String? = null, offset: Int = 0): com.velocity.app.data.model.RepositorySearchPage {
+        val response = api.searchRepository(query.trim(), kind, sessionId, role, after, before, offset)
+        check(response.isSuccessful) { "Search unavailable (HTTP ${response.code()}). Check your connection and filters." }
+        return checkNotNull(response.body())
     }
 
     suspend fun searchMessages(query: String): List<SearchResultItem> {

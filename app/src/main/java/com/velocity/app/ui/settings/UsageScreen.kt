@@ -136,6 +136,21 @@ fun UsageScreen(repository: ChatRepository, onBack: () -> Unit) {
                         }
                     }
                     item { UsageTokenMix(summary) }
+                    item {
+                        Column(Modifier.fillMaxWidth().background(VelocityColors.SurfaceCard, RoundedCornerShape(20.dp)).padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Prompt caching", style = MaterialTheme.typography.titleSmall, color = VelocityColors.TextPrimary)
+                            Text("Provider-reported cached input · $rangeLabel", style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
+                            if (breakdown?.byConversation?.none { it.conversationKind in setOf("main", "thread") } != false) Text("Conversation requests appear here once usage is recorded.", style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
+                            breakdown?.byConversation?.filter { it.conversationKind in setOf("main", "thread") }?.forEach { usage ->
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(if (usage.conversationKind == "main") "Main timeline" else "Side threads", color = VelocityColors.TextPrimary, style = MaterialTheme.typography.bodySmall)
+                                    Text(if (usage.cacheReported > 0) "${String.format(java.util.Locale.US, "%.1f", usage.cacheHitRate * 100)}%" else "Not reported", color = VelocityColors.Accent, style = MaterialTheme.typography.bodySmall)
+                                }
+                                LinearProgressIndicator(progress = { usage.cacheHitRate.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(), color = VelocityColors.Accent, trackColor = VelocityColors.SurfaceElevated)
+                                Text("${usage.cachedTokens} cached tokens · ${usageUsd(usage.cacheSavingsUsd)} saved · ${usage.cacheReported}/${usage.calls} calls reported", color = VelocityColors.TextMuted, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
                     item { UsageDailyChart(value.daily) }
                 }
                 item {

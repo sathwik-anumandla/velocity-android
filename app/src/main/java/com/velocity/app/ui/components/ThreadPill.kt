@@ -39,7 +39,7 @@ fun ThreadPill(
             modifier = Modifier
                 .size(38.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0x22A78BFA)),
+                .background(VelocityColors.AccentBg),
             contentAlignment = Alignment.Center
         ) {
             Icon(

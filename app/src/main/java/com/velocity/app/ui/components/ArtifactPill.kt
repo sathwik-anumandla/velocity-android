@@ -39,7 +39,7 @@ fun ArtifactPill(
             modifier = Modifier
                 .size(38.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0x2234D399)),
+                .background(VelocityColors.AccentBg),
             contentAlignment = Alignment.Center
         ) {
             Icon(

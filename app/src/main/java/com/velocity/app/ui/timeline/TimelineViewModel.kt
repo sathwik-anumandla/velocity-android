@@ -22,6 +22,7 @@ data class TimelineUiState(
     val hasMoreHistory: Boolean = false,
     val historyCursor: String? = null,
     val historyRevision: Long = 0,
+    val jumpMessageId: String? = null,
     val isStreaming: Boolean = false,
     val streamingStatus: String? = null,
     val isBackendOnline: Boolean = true,
@@ -56,11 +57,12 @@ class TimelineViewModel : ViewModel() {
         }
     }
 
-    fun switchSession(sessionId: String, title: String? = null) {
+    fun switchSession(sessionId: String, title: String? = null, messageId: String? = null) {
         streamJob?.cancel()
         val newTitle = if (sessionId == "main") "velocity" else (title ?: "Thread")
         _uiState.value = _uiState.value.copy(
             currentSessionId = sessionId,
+            jumpMessageId = messageId,
             sessionTitle = newTitle,
             messages = emptyList(),
             hasMoreHistory = false,
@@ -78,6 +80,15 @@ class TimelineViewModel : ViewModel() {
         loadMessages()
     }
 
+    fun jumpToMessage(sessionId: String, messageId: String) {
+        if (_uiState.value.isStreaming) return
+        switchSession(sessionId, messageId = messageId)
+    }
+
+    fun clearJumpTarget() {
+        _uiState.value = _uiState.value.copy(jumpMessageId = null)
+    }
+
     fun loadMessages() {
         val repo = repository ?: return
         val sessionId = _uiState.value.currentSessionId
@@ -89,8 +100,18 @@ class TimelineViewModel : ViewModel() {
             try {
                 repo.cachedHistory(sessionId)?.let { applyPage(it, sessionId, offline = true, loading = true) }
                 val fresh = repo.fetchHistory(sessionId)
-                val combined = repo.cachedHistory(sessionId) ?: fresh
+                var combined = repo.cachedHistory(sessionId) ?: fresh
+                val target = _uiState.value.jumpMessageId
+                while (target != null && combined.messages.none { it.id == target } && combined.hasMore && combined.oldestCursor != null) {
+                    val cursor = combined.oldestCursor
+                    val older = repo.fetchHistory(sessionId, cursor)
+                    if (older.historyRevision != combined.historyRevision) throw IllegalStateException("History changed while finding this message. Search again.")
+                    combined = combined.copy(messages = (older.messages + combined.messages).distinctBy { it.id }, hasMore = older.hasMore, oldestCursor = older.oldestCursor)
+                    if (older.oldestCursor == cursor || older.messages.isEmpty()) break
+                    applyPage(combined, sessionId, offline = false, loading = true)
+                }
                 applyPage(combined, sessionId, offline = false, loading = false)
+                if (target != null && combined.messages.none { it.id == target }) _uiState.value = _uiState.value.copy(jumpMessageId = null, error = "This message is no longer available.")
                 if (_uiState.value.currentSessionId == sessionId) combined.messages.lastOrNull { it.role == "assistant" && it.turnStatus == "running" }?.let { resumeTurn(it, sessionId) }
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled

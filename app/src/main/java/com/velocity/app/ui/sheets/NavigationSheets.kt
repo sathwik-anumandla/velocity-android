@@ -3,6 +3,8 @@ package com.velocity.app.ui.sheets
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,7 +27,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.velocity.app.data.api.ChronologyItem
-import com.velocity.app.data.api.SearchResultItem
 import com.velocity.app.data.model.ArtifactItem
 import com.velocity.app.data.model.ThreadItem
 import com.velocity.app.data.repository.ChatRepository
@@ -58,7 +59,9 @@ fun NavigationSheetHost(
     currentServerConfig: ServerConfig,
     onSelectThread: (String) -> Unit,
     onOpenArtifact: (ArtifactItem) -> Unit,
-    onDisconnect: () -> Unit
+    onDisconnect: () -> Unit,
+    currentSessionId: String = "main",
+    onSelectMessage: (String, String) -> Unit = { sessionId, _ -> onSelectThread(sessionId) }
 ) {
     if (activeSheet == SheetType.NONE) return
 
@@ -106,8 +109,10 @@ fun NavigationSheetHost(
                 )
                 SheetType.SEARCH -> SearchSheetContent(
                     repository = repository,
-                    onSelectMessage = { sessionId ->
-                        onSelectThread(sessionId)
+                    currentSessionId = currentSessionId,
+                    onOpenArtifact = { artifact -> onOpenArtifact(artifact); onDismiss() },
+                    onSelectMessage = { sessionId, messageId ->
+                        if (messageId != null) onSelectMessage(sessionId, messageId) else onSelectThread(sessionId)
                         onDismiss()
                     },
                     onDismiss = onDismiss
@@ -314,7 +319,7 @@ private fun DocumentsSheetContent(
     val filtered = if (filterQuery.isBlank()) artifacts else {
         artifacts.filter {
             it.title.contains(filterQuery, ignoreCase = true) ||
-            it.summary.contains(filterQuery, ignoreCase = true)
+            it.summary.orEmpty().contains(filterQuery, ignoreCase = true)
         }
     }
 
@@ -468,9 +473,9 @@ private fun DocumentsSheetContent(
                                     )
                                 }
                             }
-                            if (doc.summary.isNotBlank()) {
+                            if (!doc.summary.isNullOrBlank()) {
                                 Text(
-                                    text = doc.summary,
+                                    text = doc.summary.orEmpty(),
                                     style = VelocityTypography.bodySmall,
                                     color = VelocityColors.TextSecondary,
                                     maxLines = 2
@@ -487,174 +492,101 @@ private fun DocumentsSheetContent(
 @Composable
 private fun SearchSheetContent(
     repository: ChatRepository,
-    onSelectMessage: (String) -> Unit,
+    currentSessionId: String,
+    onSelectMessage: (String, String?) -> Unit,
+    onOpenArtifact: (ArtifactItem) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     var query by remember { mutableStateOf("") }
-    var results by remember { mutableStateOf<List<SearchResultItem>>(emptyList()) }
-    var isSearching by remember { mutableStateOf(false) }
+    var kind by remember { mutableStateOf("all") }
+    var currentOnly by remember { mutableStateOf(false) }
+    var author by remember { mutableStateOf("") }
+    var after by remember { mutableStateOf("") }
+    var before by remember { mutableStateOf("") }
+    var filtersOpen by remember { mutableStateOf(false) }
+    var offset by remember { mutableIntStateOf(0) }
+    var page by remember { mutableStateOf(com.velocity.app.data.model.RepositorySearchPage()) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(query) {
-        if (query.isBlank()) {
-            results = emptyList()
-            return@LaunchedEffect
-        }
-        delay(250)
-        isSearching = true
-        results = withContext(Dispatchers.IO) { repository.searchMessages(query) }
-        isSearching = false
+    LaunchedEffect(query, kind, currentOnly, author, after, before) {
+        offset = 0
+        page = com.velocity.app.data.model.RepositorySearchPage()
     }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    painter = painterResource(LucideIcons.Search),
-                    contentDescription = null,
-                    tint = VelocityColors.TextPrimary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = "Search History",
-                    style = VelocityTypography.headlineMedium,
-                    color = VelocityColors.TextPrimary
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(VelocityColors.SurfaceCapsule)
-                    .clickable {
-                        VelocityHaptics.subtleTick(context)
-                        onDismiss()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(LucideIcons.Close),
-                    contentDescription = "Close",
-                    tint = VelocityColors.TextSecondary,
-                    modifier = Modifier.size(16.dp)
-                )
+    LaunchedEffect(query, kind, currentOnly, author, after, before, offset) {
+        if (query.isBlank()) { busy = false; return@LaunchedEffect }
+        busy = true
+        try {
+            delay(250)
+            val result = repository.searchRepository(query, kind, currentSessionId.takeIf { currentOnly }, author.takeIf { it.isNotBlank() }, after.takeIf { it.isNotBlank() }, before.takeIf { it.isNotBlank() }, offset)
+            page = result.copy(results = if (offset == 0) result.results else (page.results + result.results).distinctBy { it.kind to it.id })
+            error = null
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            error = failure.message
+        } finally {
+            busy = false
+        }
+    }
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Search", style = VelocityTypography.titleLarge, color = VelocityColors.TextPrimary)
+            IconButton(onClick = onDismiss) { Icon(painterResource(LucideIcons.Close), "Close search", tint = VelocityColors.TextMuted) }
+        }
+        OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Search saved content…") })
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("all", "messages", "threads", "documents").forEach { category ->
+                FilterChip(selected = kind == category, onClick = { kind = category }, label = { Text(category.replaceFirstChar { it.uppercase() }) })
             }
         }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(VelocityColors.SurfaceCapsule)
-                .padding(horizontal = 12.dp, vertical = 10.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    painter = painterResource(LucideIcons.Search),
-                    contentDescription = null,
-                    tint = VelocityColors.TextDim,
-                    modifier = Modifier.size(16.dp)
-                )
-                BasicTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    textStyle = TextStyle(color = VelocityColors.TextPrimary, fontSize = 14.sp),
-                    cursorBrush = SolidColor(VelocityColors.AccentSky),
-                    modifier = Modifier.weight(1f),
-                    decorationBox = { innerTextField ->
-                        if (query.isEmpty()) {
-                            Text("Search messages, code, memory...", style = VelocityTypography.bodyMedium, color = VelocityColors.TextDim)
-                        }
-                        innerTextField()
-                    }
-                )
-                if (query.isNotEmpty()) {
-                    Icon(
-                        painter = painterResource(LucideIcons.Close),
-                        contentDescription = "Clear",
-                        tint = VelocityColors.TextDim,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clickable { query = "" }
-                    )
+        TextButton(onClick = { filtersOpen = !filtersOpen }) { Text(if (filtersOpen) "Hide filters" else "Filters") }
+        if (filtersOpen) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(currentOnly, { currentOnly = it })
+                Text("Current conversation only", style = VelocityTypography.bodySmall, color = VelocityColors.TextMuted)
+            }
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("" to "Any author", "user" to "You", "assistant" to "Velocity").forEach { (role, label) ->
+                    FilterChip(selected = author == role, onClick = { author = role }, label = { Text(label) })
                 }
             }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(after, { after = it }, label = { Text("From YYYY-MM-DD") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(before, { before = it }, label = { Text("Until YYYY-MM-DD") }, modifier = Modifier.weight(1f), singleLine = true)
+            }
         }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        if (isSearching) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = VelocityColors.TextPrimary, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-            }
-        } else if (results.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = if (query.isBlank()) "Type to search messages" else "No matching messages found",
-                    style = VelocityTypography.bodyMedium,
-                    color = VelocityColors.TextMuted
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(results) { item ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(VelocityColors.SurfaceCapsule)
-                            .clickable {
-                                VelocityHaptics.lightClick(context)
-                                onSelectMessage(item.sessionId)
+        error?.let { Text(it, color = VelocityColors.Accent, style = VelocityTypography.bodySmall, modifier = Modifier.padding(vertical = 8.dp)) }
+        if (!busy && page.results.isEmpty()) Text(if (query.isBlank()) "Find messages, threads and documents. Use quotes for exact phrases." else "No matches. Try fewer words or wider filters.", color = VelocityColors.TextMuted, style = VelocityTypography.bodySmall, modifier = Modifier.padding(vertical = 16.dp))
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("documents", "messages", "threads").forEach { category ->
+                val results = page.results.filter { it.kind == category }
+                if (results.isNotEmpty()) item(key = category) { Text(category.uppercase(), color = VelocityColors.TextDim, style = VelocityTypography.labelSmall, modifier = Modifier.padding(top = 12.dp)) }
+                items(results, key = { it.kind + it.id }) { result ->
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(VelocityColors.SurfaceCapsule).clickable {
+                        VelocityHaptics.lightClick(context)
+                        if (result.kind == "documents") onOpenArtifact(ArtifactItem(id = result.id, title = result.title.orEmpty()))
+                        else onSelectMessage(result.sessionId, result.messageId)
+                    }.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(result.title ?: "Main timeline", color = VelocityColors.TextPrimary, style = VelocityTypography.titleSmall)
+                        val excerpt = androidx.compose.ui.text.buildAnnotatedString {
+                            var highlighted = false
+                            (result.snippet.ifBlank { result.content }).forEach { character ->
+                                when (character) {
+                                    '\uE000' -> { highlighted = true; pushStyle(androidx.compose.ui.text.SpanStyle(color = VelocityColors.Accent, fontWeight = FontWeight.Bold)) }
+                                    '\uE001' -> if (highlighted) { pop(); highlighted = false }
+                                    else -> append(character)
+                                }
                             }
-                            .padding(14.dp)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = item.sessionName ?: "Main Timeline",
-                                style = VelocityTypography.titleSmall,
-                                color = VelocityColors.AccentSky
-                            )
-                            Text(
-                                text = item.snippet ?: item.content,
-                                style = VelocityTypography.bodySmall,
-                                color = VelocityColors.TextPrimary,
-                                maxLines = 3
-                            )
                         }
+                        Text(excerpt, color = VelocityColors.TextMuted, style = VelocityTypography.bodySmall, maxLines = 3)
+                        Text(listOfNotNull(result.role, result.createdAt.take(10)).joinToString(" · "), color = VelocityColors.TextDim, style = VelocityTypography.labelSmall)
                     }
                 }
             }
+            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = VelocityColors.Accent) }
+            if (page.hasMore && !busy) item { TextButton(onClick = { offset = page.nextOffset ?: 0 }, modifier = Modifier.fillMaxWidth()) { Text("Load more results") } }
         }
     }
 }

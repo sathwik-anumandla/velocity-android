@@ -614,7 +614,7 @@ private fun GeneralTabSubpage(
                             fontFamily = SatoshiFontFamily,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFEF4444)
+                            color = VelocityColors.Accent
                         )
                     }
                 }
@@ -961,7 +961,7 @@ private fun PluginsTabSubpage(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0x26F59E0B)),
+                                .background(VelocityColors.AccentBg),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -1010,7 +1010,7 @@ private fun PluginsTabSubpage(
                             Text(
                                 text = if (isDisconnecting) "Disconnecting..." else "Disconnect",
                                 fontSize = 11.sp,
-                                color = Color(0xFFEF4444),
+                                color = VelocityColors.Accent,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -1049,7 +1049,7 @@ private fun PluginServiceRow(name: String, active: Boolean, desc: String) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
-                .background(if (active) Color(0x2634D399) else VelocityColors.SurfaceCapsule)
+                .background(if (active) VelocityColors.AccentBg else VelocityColors.SurfaceCapsule)
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
