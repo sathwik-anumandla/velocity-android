@@ -4,6 +4,14 @@ import androidx.annotation.DrawableRes
 import com.velocity.app.R
 
 object LucideIcons {
+    @DrawableRes val ArrowDown: Int = R.drawable.ic_lucide_arrow_down
+    @DrawableRes val ChevronLeft: Int = R.drawable.ic_lucide_chevron_left
+    @DrawableRes val Chart: Int = R.drawable.ic_lucide_chart
+    @DrawableRes val Copy: Int = R.drawable.ic_lucide_copy
+    @DrawableRes val Download: Int = R.drawable.ic_lucide_download
+    @DrawableRes val Sun: Int = R.drawable.ic_lucide_sun
+    @DrawableRes val Share: Int = R.drawable.ic_lucide_share
+
     @DrawableRes val Threads: Int = R.drawable.ic_lucide_threads
     @DrawableRes val Documents: Int = R.drawable.ic_lucide_documents
     @DrawableRes val Search: Int = R.drawable.ic_lucide_search

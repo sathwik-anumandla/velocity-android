@@ -24,6 +24,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        com.velocity.app.ui.theme.ThemePreference.load(this)
         setContent {
             VelocityTheme {
                 Surface(

@@ -83,7 +83,7 @@ fun ThreadResponse(message: ChatMessage, streamingStatus: String?, modifier: Mod
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF18181B))
+                        .background(VelocityColors.SurfaceCapsule)
                         .padding(12.dp)
                 )
             }
@@ -120,7 +120,7 @@ private fun ThreadStatusText(text: String) {
             fontWeight = FontWeight.Medium,
             letterSpacing = (-0.3).sp,
             brush = Brush.linearGradient(
-                colors = listOf(Color(0xFF71717A), Color(0xFF71717A), Color.White, Color(0xFF71717A), Color(0xFF71717A)),
+                colors = listOf(VelocityColors.TextDim, VelocityColors.TextDim, VelocityColors.TextPrimary, VelocityColors.TextDim, VelocityColors.TextDim),
                 start = Offset(left, 0f),
                 end = Offset(left + textWidth * 1.6f, 0f)
             )

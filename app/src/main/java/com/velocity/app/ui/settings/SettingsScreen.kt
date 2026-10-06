@@ -8,6 +8,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -67,8 +69,8 @@ fun SettingsScreen(
     var currentTab by remember { mutableStateOf(SettingsTab.ROOT) }
     var modelConfig by remember { mutableStateOf(ServerConfigManager.loadModelConfig(context)) }
 
-    BackHandler(enabled = currentTab != SettingsTab.ROOT) {
-        currentTab = SettingsTab.ROOT
+    BackHandler {
+        if (currentTab == SettingsTab.ROOT) onClose() else currentTab = SettingsTab.ROOT
     }
 
     Box(
@@ -189,7 +191,7 @@ private fun SettingsRootView(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF1E1E22))
+                    .background(VelocityColors.SurfaceCapsule)
                     .clickable {
                         VelocityHaptics.lightClick(context)
                         onClose()
@@ -212,7 +214,7 @@ private fun SettingsRootView(
             // Grouped Category Cards
             item {
                 Text(
-                    text = "SYSTEM ARCHITECTURE",
+                    text = "PREFERENCES & TOOLS",
                     fontFamily = SatoshiFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
@@ -225,66 +227,66 @@ private fun SettingsRootView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF141416))
+                        .background(VelocityColors.SurfaceCard)
                 ) {
                     // 1. General
                     SettingsRowItem(
                         icon = LucideIcons.Sliders,
-                        iconTint = Color(0xFFA1A1AA),
+                        iconTint = VelocityColors.TextMuted,
                         title = "General",
                         subtitle = "Model ${modelConfig.model} · ${modelConfig.thinkingEffort.replaceFirstChar { it.uppercase() }} reasoning",
                         onClick = { onNavigate(SettingsTab.GENERAL) }
                     )
 
-                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF222226), modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(thickness = 0.5.dp, color = VelocityColors.SurfaceElevated, modifier = Modifier.padding(horizontal = 16.dp))
 
                     // 2. Memory
                     SettingsRowItem(
                         icon = LucideIcons.Brain,
-                        iconTint = Color(0xFF38BDF8),
+                        iconTint = VelocityColors.AccentSky,
                         title = "Memory",
-                        subtitle = "Deterministic vault documents, inspect & edit files",
+                        subtitle = "Browse and edit saved memories",
                         onClick = { onNavigate(SettingsTab.MEMORY) }
                     )
 
-                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF222226), modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(thickness = 0.5.dp, color = VelocityColors.SurfaceElevated, modifier = Modifier.padding(horizontal = 16.dp))
 
                     // 3. Plugins
                     SettingsRowItem(
                         icon = LucideIcons.Puzzle,
-                        iconTint = Color(0xFFF59E0B),
+                        iconTint = VelocityColors.AccentAmber,
                         title = "Plugins",
-                        subtitle = "Google Workspace (Calendar, Tasks, Gmail)",
+                        subtitle = "Calendar, Tasks and Gmail",
                         onClick = { onNavigate(SettingsTab.PLUGINS) }
                     )
 
-                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF222226), modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(thickness = 0.5.dp, color = VelocityColors.SurfaceElevated, modifier = Modifier.padding(horizontal = 16.dp))
 
                     // 4. Schedules
                     SettingsRowItem(
                         icon = LucideIcons.Clock,
-                        iconTint = Color(0xFFA78BFA),
+                        iconTint = VelocityColors.AccentViolet,
                         title = "Schedules",
-                        subtitle = "Autonomous routines, morning briefings & reminders",
+                        subtitle = "Create and manage routines",
                         onClick = { onNavigate(SettingsTab.SCHEDULES) }
                     )
 
-                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF222226), modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(thickness = 0.5.dp, color = VelocityColors.SurfaceElevated, modifier = Modifier.padding(horizontal = 16.dp))
 
                     // 5. Skills
                     SettingsRowItem(
                         icon = LucideIcons.Sparkles,
-                        iconTint = Color(0xFF34D399),
+                        iconTint = VelocityColors.AccentEmerald,
                         title = "Skills",
-                        subtitle = "Modular technical skills & dynamic instructions",
+                        subtitle = "Customize skills and instructions",
                         onClick = { onNavigate(SettingsTab.SKILLS) }
                     )
-                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF222226))
+                    HorizontalDivider(thickness = 0.5.dp, color = VelocityColors.SurfaceElevated)
                     SettingsRowItem(
-                        icon = LucideIcons.Clock,
+                        icon = LucideIcons.Chart,
                         iconTint = VelocityColors.AccentSky,
                         title = "Usage",
-                        subtitle = "Tokens, reasoning, cache effectiveness & cost estimates",
+                        subtitle = "Spending, tokens and cache insights",
                         onClick = { onNavigate(SettingsTab.USAGE) }
                     )
                 }
@@ -306,7 +308,7 @@ private fun SettingsRootView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF141416))
+                        .background(VelocityColors.SurfaceCard)
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -326,7 +328,7 @@ private fun SettingsRootView(
                             text = serverConfig.baseUrl.ifEmpty { "Connected" },
                             style = MonoTextStyle,
                             fontSize = 12.sp,
-                            color = Color.White
+                            color = VelocityColors.TextPrimary
                         )
                     }
 
@@ -348,7 +350,7 @@ private fun SettingsRootView(
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFF34D399)
+                                color = VelocityColors.AccentEmerald
                             )
                         }
                     }
@@ -404,14 +406,23 @@ private fun GeneralTabSubpage(
             // Primary Model
             item { DeploymentInfo(repository) }
             item {
-                SectionCard(title = "PRIMARY INFERENCE MODEL", subtitle = "High-speed vs. deep architecture reasoning model.") {
+                SectionCard(title = "Appearance", subtitle = "Choose a theme for every screen.", icon = LucideIcons.Sun) {
+                    val options = listOf("Light", "Dark", "OLED")
+                    val modes = listOf("light", "dark", "oled")
+                    UsageSegments(options, modes.indexOf(com.velocity.app.ui.theme.ThemePreference.mode).coerceAtLeast(0)) { index ->
+                        com.velocity.app.ui.theme.ThemePreference.select(context, modes[index])
+                    }
+                }
+            }
+            item {
+                SectionCard(title = "Model", subtitle = "Balance speed and reasoning depth.", icon = LucideIcons.Sparkles) {
                     supportedModels.forEach { (mId, mDesc) ->
                         val isSelected = config.model.equals(mId, ignoreCase = true)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) Color(0xFF222226) else Color.Transparent)
+                                .background(if (isSelected) VelocityColors.SurfaceElevated else Color.Transparent)
                                 .clickable {
                                     VelocityHaptics.lightClick(context)
                                     onConfigChange(config.copy(model = mId))
@@ -426,7 +437,7 @@ private fun GeneralTabSubpage(
                                     fontFamily = SatoshiFontFamily,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
+                                    color = VelocityColors.TextPrimary
                                 )
                                 Text(
                                     text = mDesc,
@@ -440,7 +451,7 @@ private fun GeneralTabSubpage(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White)
+                                        .background(VelocityColors.TextPrimary)
                                 )
                             }
                         }
@@ -450,12 +461,12 @@ private fun GeneralTabSubpage(
 
             // Thinking Effort
             item {
-                SectionCard(title = "THINKING EFFORT", subtitle = "Depth of reasoning applied before response turns.") {
+                SectionCard(title = "Reasoning", subtitle = "Choose how deeply the model thinks.", icon = LucideIcons.Brain) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF1A1A1E))
+                            .background(VelocityColors.SurfaceCapsule)
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -465,7 +476,7 @@ private fun GeneralTabSubpage(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) Color(0xFF2E2E34) else Color.Transparent)
+                                    .background(if (isSelected) VelocityColors.SurfaceElevated else Color.Transparent)
                                     .clickable {
                                         VelocityHaptics.subtleTick(context)
                                         onConfigChange(config.copy(thinkingEffort = effort))
@@ -478,7 +489,7 @@ private fun GeneralTabSubpage(
                                     fontFamily = SatoshiFontFamily,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = if (isSelected) Color.White else VelocityColors.TextMuted
+                                    color = if (isSelected) VelocityColors.TextPrimary else VelocityColors.TextMuted
                                 )
                             }
                         }
@@ -488,12 +499,12 @@ private fun GeneralTabSubpage(
 
             // Verbosity
             item {
-                SectionCard(title = "RESPONSE VERBOSITY", subtitle = "Control paragraph length and response density.") {
+                SectionCard(title = "Response length", subtitle = "Choose concise or detailed answers.", icon = LucideIcons.Documents) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF1A1A1E))
+                            .background(VelocityColors.SurfaceCapsule)
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -503,7 +514,7 @@ private fun GeneralTabSubpage(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) Color(0xFF2E2E34) else Color.Transparent)
+                                    .background(if (isSelected) VelocityColors.SurfaceElevated else Color.Transparent)
                                     .clickable {
                                         VelocityHaptics.subtleTick(context)
                                         onConfigChange(config.copy(verbosity = vKey))
@@ -516,7 +527,7 @@ private fun GeneralTabSubpage(
                                     fontFamily = SatoshiFontFamily,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = if (isSelected) Color.White else VelocityColors.TextMuted
+                                    color = if (isSelected) VelocityColors.TextPrimary else VelocityColors.TextMuted
                                 )
                             }
                         }
@@ -526,12 +537,12 @@ private fun GeneralTabSubpage(
 
             // Recall Budget
             item {
-                SectionCard(title = "MEMORY RECALL BUDGET", subtitle = "Depth of Hindsight memory search per turn.") {
+                SectionCard(title = "Memory recall", subtitle = "Set how much memory to search.", icon = LucideIcons.History) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF1A1A1E))
+                            .background(VelocityColors.SurfaceCapsule)
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -541,7 +552,7 @@ private fun GeneralTabSubpage(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) Color(0xFF2E2E34) else Color.Transparent)
+                                    .background(if (isSelected) VelocityColors.SurfaceElevated else Color.Transparent)
                                     .clickable {
                                         VelocityHaptics.subtleTick(context)
                                         onConfigChange(config.copy(recallBudget = rKey))
@@ -554,7 +565,7 @@ private fun GeneralTabSubpage(
                                     fontFamily = SatoshiFontFamily,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = if (isSelected) Color.White else VelocityColors.TextMuted
+                                    color = if (isSelected) VelocityColors.TextPrimary else VelocityColors.TextMuted
                                 )
                             }
                         }
@@ -564,7 +575,7 @@ private fun GeneralTabSubpage(
 
             // Server Diagnostics & Pairing
             item {
-                SectionCard(title = "SERVER DIAGNOSTICS & PAIRING") {
+                SectionCard(title = "Connection", icon = LucideIcons.Qr) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -580,7 +591,7 @@ private fun GeneralTabSubpage(
                             text = if (isPinging) "Measuring..." else "${latencyMs ?: 0} ms",
                             style = MonoTextStyle,
                             fontSize = 12.sp,
-                            color = Color(0xFF34D399)
+                            color = VelocityColors.AccentEmerald
                         )
                     }
 
@@ -590,7 +601,7 @@ private fun GeneralTabSubpage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF2B1214))
+                            .background(androidx.compose.material3.MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
                             .clickable {
                                 VelocityHaptics.lightClick(context)
                                 onDisconnect()
@@ -690,7 +701,7 @@ private fun MemoryTabSubpage(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF141416))
+                    .background(VelocityColors.SurfaceCard)
                     .padding(16.dp)
             ) {
                 Row(
@@ -704,7 +715,7 @@ private fun MemoryTabSubpage(
                         text = selectedPath ?: "",
                         style = MonoTextStyle,
                         fontSize = 12.sp,
-                        color = Color.White,
+                        color = VelocityColors.TextPrimary,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -713,7 +724,7 @@ private fun MemoryTabSubpage(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF222226))
+                                    .background(VelocityColors.SurfaceElevated)
                                     .clickable { isEditingDoc = false }
                                     .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
@@ -723,7 +734,7 @@ private fun MemoryTabSubpage(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.White)
+                                    .background(VelocityColors.TextPrimary)
                                     .clickable { saveDoc() }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
@@ -731,14 +742,14 @@ private fun MemoryTabSubpage(
                                     text = if (isSavingDoc) "Saving..." else "Save",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.Black
+                                    color = VelocityColors.Canvas
                                 )
                             }
                         } else {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF222226))
+                                    .background(VelocityColors.SurfaceElevated)
                                     .clickable {
                                         editDraft = docContent
                                         isEditingDoc = true
@@ -752,21 +763,21 @@ private fun MemoryTabSubpage(
                                     Icon(
                                         painter = painterResource(LucideIcons.Edit),
                                         contentDescription = "Edit",
-                                        tint = Color.White,
+                                        tint = VelocityColors.TextPrimary,
                                         modifier = Modifier.size(12.dp)
                                     )
-                                    Text("Edit", fontSize = 12.sp, color = Color.White)
+                                    Text("Edit", fontSize = 12.sp, color = VelocityColors.TextPrimary)
                                 }
                             }
                         }
                     }
                 }
 
-                HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF222226))
+                HorizontalDivider(thickness = 0.5.dp, color = VelocityColors.SurfaceElevated)
 
                 if (isLoadingDoc) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = VelocityColors.TextPrimary, modifier = Modifier.size(24.dp))
                     }
                 } else if (isEditingDoc) {
                     TextField(
@@ -778,9 +789,9 @@ private fun MemoryTabSubpage(
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color(0xFFE4E4E7),
-                            cursorColor = Color.White,
+                            focusedTextColor = VelocityColors.TextPrimary,
+                            unfocusedTextColor = VelocityColors.TextSecondary,
+                            cursorColor = VelocityColors.TextPrimary,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         ),
@@ -794,7 +805,7 @@ private fun MemoryTabSubpage(
                                 fontFamily = FontFamily.Default,
                                 fontSize = 13.sp,
                                 lineHeight = 21.sp,
-                                color = Color(0xFFE4E4E7)
+                                color = VelocityColors.TextSecondary
                             )
                         }
                     }
@@ -810,12 +821,12 @@ private fun MemoryTabSubpage(
                     .fillMaxWidth()
                     .padding(bottom = 12.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF141416)),
+                    .background(VelocityColors.SurfaceCard),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
+                    focusedTextColor = VelocityColors.TextPrimary,
+                    unfocusedTextColor = VelocityColors.TextPrimary,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 ),
@@ -824,7 +835,7 @@ private fun MemoryTabSubpage(
 
             if (isLoadingTree) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(color = VelocityColors.TextPrimary, modifier = Modifier.size(24.dp))
                 }
             } else {
                 val filtered = vaultTree.filter {
@@ -845,7 +856,7 @@ private fun MemoryTabSubpage(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(Color(0xFF141416))
+                                    .background(VelocityColors.SurfaceCard)
                                     .clickable {
                                         VelocityHaptics.lightClick(context)
                                         openDoc(item.path)
@@ -862,7 +873,7 @@ private fun MemoryTabSubpage(
                                     Icon(
                                         painter = painterResource(LucideIcons.Documents),
                                         contentDescription = null,
-                                        tint = Color(0xFF38BDF8),
+                                        tint = VelocityColors.AccentSky,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Column {
@@ -871,7 +882,7 @@ private fun MemoryTabSubpage(
                                             fontFamily = SatoshiFontFamily,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Medium,
-                                            color = Color.White
+                                            color = VelocityColors.TextPrimary
                                         )
                                         Text(
                                             text = item.path,
@@ -926,14 +937,14 @@ private fun PluginsTabSubpage(
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                CircularProgressIndicator(color = VelocityColors.TextPrimary, modifier = Modifier.size(24.dp))
             }
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF141416))
+                    .background(VelocityColors.SurfaceCard)
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
@@ -956,7 +967,7 @@ private fun PluginsTabSubpage(
                             Icon(
                                 painter = painterResource(LucideIcons.Puzzle),
                                 contentDescription = null,
-                                tint = Color(0xFFF59E0B),
+                                tint = VelocityColors.AccentAmber,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -967,13 +978,13 @@ private fun PluginsTabSubpage(
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = VelocityColors.TextPrimary
                             )
                             Text(
                                 text = if (status.connected) "Connected: ${status.email ?: "Account linked"}" else "Not Connected",
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 12.sp,
-                                color = if (status.connected) Color(0xFF34D399) else VelocityColors.TextMuted
+                                color = if (status.connected) VelocityColors.AccentEmerald else VelocityColors.TextMuted
                             )
                         }
                     }
@@ -982,7 +993,7 @@ private fun PluginsTabSubpage(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF2B1214))
+                                .background(androidx.compose.material3.MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
                                 .clickable {
                                     isDisconnecting = true
                                     coroutineScope.launch {
@@ -1006,7 +1017,7 @@ private fun PluginsTabSubpage(
                     }
                 }
 
-                HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF222226))
+                HorizontalDivider(thickness = 0.5.dp, color = VelocityColors.SurfaceElevated)
 
                 Text(
                     text = "Integrated Services:",
@@ -1032,20 +1043,20 @@ private fun PluginServiceRow(name: String, active: Boolean, desc: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = name, fontFamily = SatoshiFontFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White)
+            Text(text = name, fontFamily = SatoshiFontFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = VelocityColors.TextPrimary)
             Text(text = desc, fontFamily = SatoshiFontFamily, fontSize = 11.sp, color = VelocityColors.TextMuted)
         }
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
-                .background(if (active) Color(0x2634D399) else Color(0xFF1E1E22))
+                .background(if (active) Color(0x2634D399) else VelocityColors.SurfaceCapsule)
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
                 text = if (active) "Active" else "Inactive",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
-                color = if (active) Color(0xFF34D399) else VelocityColors.TextMuted
+                color = if (active) VelocityColors.AccentEmerald else VelocityColors.TextMuted
             )
         }
     }
@@ -1060,369 +1071,179 @@ private fun SchedulesTabSubpage(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
     var routines by remember { mutableStateOf<List<ScheduledRoutine>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<ScheduledRoutine?>(null) }
+    var deleting by remember { mutableStateOf<ScheduledRoutine?>(null) }
+    var name by remember { mutableStateOf("") }
+    var prompt by remember { mutableStateOf("") }
+    var timing by remember { mutableStateOf("0 8 * * *") }
+    var timezone by remember { mutableStateOf(java.time.ZoneId.systemDefault().id) }
+    var oneShot by remember { mutableStateOf(false) }
+    var advancedTiming by remember { mutableStateOf(false) }
+    var frequency by remember { mutableIntStateOf(0) }
+    var executionTime by remember { mutableStateOf("08:00") }
+    var saving by remember { mutableStateOf(false) }
+    var editorError by remember { mutableStateOf<String?>(null) }
 
-    // Dialog state to add routine
-    var isAddingRoutine by remember { mutableStateOf(false) }
-    var newRoutineName by remember { mutableStateOf("") }
-    var newRoutineType by remember { mutableStateOf("recurring") } // "recurring" or "one_shot"
-    var newRoutineFrequency by remember { mutableStateOf("daily") } // "daily", "weekdays", "weekends"
-    var newRoutineTime by remember { mutableStateOf("08:00") }
-    var newRoutinePrompt by remember { mutableStateOf("") }
-    var isSavingRoutine by remember { mutableStateOf(false) }
-
-    fun loadRoutines() {
-        isLoading = true
-        coroutineScope.launch {
-            routines = withContext(Dispatchers.IO) { repository.fetchSchedules() }
-            isLoading = false
+    fun load() {
+        loading = true
+        scope.launch {
+            try {
+                routines = repository.fetchSchedules()
+                error = null
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                error = failure.message ?: "Could not load schedules."
+            } finally { loading = false }
         }
     }
 
-    LaunchedEffect(Unit) {
-        loadRoutines()
+    fun openEditor(routine: ScheduledRoutine?) {
+        editing = routine
+        name = routine?.name ?: ""
+        prompt = routine?.prompt ?: ""
+        oneShot = routine?.eventType == "one_shot"
+        timing = if (oneShot) routine?.runAt ?: "" else routine?.cronExpression ?: "0 8 * * *"
+        val parts = timing.trim().split(Regex("\\s+"))
+        val dayOptions = listOf("*", "1-5", "6,0")
+        advancedTiming = !oneShot && (parts.size != 5 || parts.getOrNull(0)?.toIntOrNull() !in 0..59 || parts.getOrNull(1)?.toIntOrNull() !in 0..23 || parts.getOrNull(2) != "*" || parts.getOrNull(3) != "*" || parts.getOrNull(4) !in dayOptions)
+        frequency = dayOptions.indexOf(parts.getOrNull(4)).coerceAtLeast(0)
+        executionTime = if (!oneShot && !advancedTiming) "${parts[1].padStart(2, '0')}:${parts[0].padStart(2, '0')}" else "08:00"
+        timezone = routine?.timezone ?: java.time.ZoneId.systemDefault().id
+        editorError = null
+        editorOpen = true
     }
 
-    fun submitNewRoutine() {
-        if (newRoutineName.isBlank() || newRoutinePrompt.isBlank()) return
-        isSavingRoutine = true
-        coroutineScope.launch {
-            val cronExpr = if (newRoutineType == "recurring") {
-                val parts = newRoutineTime.split(":").map { it.trim() }
-                val h = parts.getOrNull(0) ?: "08"
-                val m = parts.getOrNull(1) ?: "00"
-                when (newRoutineFrequency) {
-                    "weekdays" -> "$m $h * * 1-5"
-                    "weekends" -> "$m $h * * 6,0"
-                    else -> "$m $h * * *"
-                }
-            } else null
-
-            val success = withContext(Dispatchers.IO) {
-                repository.createSchedule(
-                    name = newRoutineName.trim(),
-                    eventType = newRoutineType,
-                    prompt = newRoutinePrompt.trim(),
-                    cronExpression = cronExpr,
-                    runAt = null
-                )
+    fun save() {
+        if (saving) return
+        editorError = null
+        try {
+            if (!oneShot && !advancedTiming) {
+                val time = java.time.LocalTime.parse(executionTime.trim())
+                timing = "${time.minute} ${time.hour} * * ${listOf("*", "1-5", "6,0")[frequency]}"
             }
-
-            if (success) {
-                VelocityHaptics.success(context)
-                isAddingRoutine = false
-                newRoutineName = ""
-                newRoutinePrompt = ""
-                loadRoutines()
+            require(name.isNotBlank()) { "Enter a routine name." }
+            require(prompt.isNotBlank() || editing?.skillId != null) { "Enter instructions for this routine." }
+            java.time.ZoneId.of(timezone.trim())
+            if (oneShot) {
+                require(java.time.OffsetDateTime.parse(timing.trim()).toInstant().isAfter(java.time.Instant.now())) { "Choose a future date and time." }
             } else {
-                VelocityHaptics.error(context)
+                require(timing.trim().split(Regex("\\s+")).size == 5) { "Use a five-field cron expression, for example 0 8 * * *." }
             }
-            isSavingRoutine = false
+        } catch (failure: Exception) {
+            editorError = failure.message ?: "Check the time and time zone."
+            return
+        }
+        saving = true
+        scope.launch {
+            try {
+                val current = editing
+                val ok = if (current != null) {
+                    repository.editSchedule(current.id, name.trim(), prompt.trim(), if (oneShot) null else timing.trim(), if (oneShot) timing.trim() else null, timezone.trim())
+                } else {
+                    repository.createSchedule(name.trim(), if (oneShot) "one_shot" else "recurring", prompt.trim(), if (oneShot) null else timing.trim(), if (oneShot) timing.trim() else null, timezone.trim())
+                }
+                check(ok) { "Could not save this routine. Check the schedule format and connection." }
+                editorOpen = false
+                VelocityHaptics.success(context)
+                load()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                editorError = failure.message ?: "Could not save the routine."
+                VelocityHaptics.error(context)
+            } finally { saving = false }
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1E1E22))
-                        .clickable { onBack() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(LucideIcons.Close),
-                        contentDescription = "Back",
-                        tint = VelocityColors.TextMuted,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-
-                Text(
-                    text = "Schedules",
-                    style = VelocityTypography.titleLarge,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = VelocityColors.TextPrimary
-                )
-            }
-
-            // New Routine Button
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
-                    .clickable { isAddingRoutine = !isAddingRoutine }
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(LucideIcons.Plus),
-                        contentDescription = "Add",
-                        tint = Color.Black,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Text(
-                        text = "New Routine",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                }
+    BackHandler(enabled = editorOpen && !saving) { editorOpen = false }
+    LaunchedEffect(repository) { load() }
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp)) {
+        SettingsSubpageHeader("Schedules", onBack)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Routines that work for you", style = VelocityTypography.bodyMedium, color = VelocityColors.TextMuted, modifier = Modifier.weight(1f))
+            IconButton(onClick = { openEditor(null) }) {
+                Icon(painterResource(LucideIcons.Plus), "New routine", tint = VelocityColors.TextPrimary)
             }
         }
-
-        // New Routine Form (Inline Accordion Card)
-        if (isAddingRoutine) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF141416))
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = "SCHEDULE NEW ROUTINE",
-                    fontFamily = SatoshiFontFamily,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = Color.White
-                )
-
-                TextField(
-                    value = newRoutineName,
-                    onValueChange = { newRoutineName = it },
-                    placeholder = { Text("Routine Name (e.g. Morning Briefing)", fontSize = 12.sp, color = VelocityColors.TextMuted) },
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFF1A1A1E)),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true
-                )
-
-                // Frequency pills
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    listOf("daily" to "Daily", "weekdays" to "Weekdays", "weekends" to "Weekends").forEach { (fKey, fLabel) ->
-                        val isSelected = newRoutineFrequency == fKey
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) Color(0xFF2E2E34) else Color(0xFF1A1A1E))
-                                .clickable { newRoutineFrequency = fKey }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = fLabel,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) Color.White else VelocityColors.TextMuted
-                            )
-                        }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(onClick = { load() }) { Text("Try again") } }
+        if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(vertical = 12.dp)) {
+            if (!loading && routines.isEmpty() && error == null) item {
+                Text("No routines yet. Tap + to schedule your first one.", style = VelocityTypography.bodyMedium, color = VelocityColors.TextMuted, modifier = Modifier.padding(vertical = 24.dp))
+            }
+            items(routines, key = { it.id }) { routine ->
+                val active = routine.status == "active"
+                Column(Modifier.fillMaxWidth().background(VelocityColors.SurfaceCard, RoundedCornerShape(18.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(painterResource(LucideIcons.Clock), null, tint = VelocityColors.AccentViolet, modifier = Modifier.size(18.dp))
+                        Text(routine.name, style = VelocityTypography.titleMedium, color = VelocityColors.TextPrimary, modifier = Modifier.weight(1f).padding(start = 10.dp))
+                        IconButton(onClick = { openEditor(routine) }) { Icon(painterResource(LucideIcons.Edit), "Edit ${routine.name}", tint = VelocityColors.TextMuted, modifier = Modifier.size(18.dp)) }
                     }
-                }
-
-                // Time Input
-                TextField(
-                    value = newRoutineTime,
-                    onValueChange = { newRoutineTime = it },
-                    placeholder = { Text("Execution Time (e.g. 08:00)", fontSize = 12.sp, color = VelocityColors.TextMuted) },
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFF1A1A1E)),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true
-                )
-
-                // Prompt
-                TextField(
-                    value = newRoutinePrompt,
-                    onValueChange = { newRoutinePrompt = it },
-                    placeholder = { Text("Prompt instructions (e.g. Synthesize today's calendar and urgent priorities)...", fontSize = 12.sp, color = VelocityColors.TextMuted) },
-                    modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF1A1A1E)),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color.White)
-                            .clickable { submitNewRoutine() }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = if (isSavingRoutine) "Saving..." else "Save Routine",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
+                    Text(routine.prompt.ifBlank { "Runs an installed skill" }, style = VelocityTypography.bodySmall, color = VelocityColors.TextSecondary, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    Text("${routine.cronExpression ?: routine.runAt ?: "Time not set"} · ${routine.timezone}", style = VelocityTypography.labelSmall, color = VelocityColors.TextMuted)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(routine.status.replaceFirstChar { it.uppercase() }, style = VelocityTypography.labelMedium, color = if (active) VelocityColors.AccentEmerald else VelocityColors.TextMuted, modifier = Modifier.weight(1f))
+                        if (routine.status == "active" || routine.status == "paused") IconButton(enabled = !loading, onClick = {
+                            scope.launch {
+                                if (repository.toggleSchedule(routine.id, !active)) load() else error = "Could not change this routine."
+                            }
+                        }) { Icon(painterResource(if (active) LucideIcons.Pause else LucideIcons.Play), if (active) "Pause routine" else "Resume routine", tint = VelocityColors.TextMuted, modifier = Modifier.size(18.dp)) }
+                        IconButton(onClick = { deleting = routine }) { Icon(painterResource(LucideIcons.Trash), "Delete routine", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp)) }
                     }
                 }
             }
         }
-
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            }
-        } else if (routines.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No scheduled routines configured", color = VelocityColors.TextMuted, fontSize = 14.sp)
-            }
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(routines, key = { it.id }) { routine ->
-                    val isActive = routine.status.equals("active", ignoreCase = true)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF141416))
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = routine.name,
-                                    fontFamily = SatoshiFontFamily,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(if (isActive) Color(0x2634D399) else Color(0xFF1E1E22))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = if (isActive) "Active" else "Paused",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (isActive) Color(0xFF34D399) else VelocityColors.TextMuted
-                                    )
-                                }
-                            }
-
-                            Text(
-                                text = routine.prompt.ifEmpty { "Autonomous routine" },
-                                fontFamily = SatoshiFontFamily,
-                                fontSize = 12.sp,
-                                color = VelocityColors.TextMuted,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Toggle pause/play
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF1E1E22))
-                                    .clickable {
-                                        coroutineScope.launch {
-                                            withContext(Dispatchers.IO) { repository.toggleSchedule(routine.id, !isActive) }
-                                            loadRoutines()
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(if (isActive) LucideIcons.Pause else LucideIcons.Play),
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                            }
-
-                            // Delete
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF2B1214))
-                                    .clickable {
-                                        coroutineScope.launch {
-                                            withContext(Dispatchers.IO) { repository.deleteSchedule(routine.id) }
-                                            loadRoutines()
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(LucideIcons.Trash),
-                                    contentDescription = null,
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(12.dp)
-                                )
-                            }
-                        }
-                    }
+    }
+    if (editorOpen) AlertDialog(
+        onDismissRequest = { if (!saving) editorOpen = false },
+        title = { Text(if (editing == null) "New routine" else "Edit routine") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text("Name") }, enabled = !saving, singleLine = true)
+                OutlinedTextField(prompt, { prompt = it }, label = { Text("Instructions") }, enabled = !saving, minLines = 3, maxLines = 6)
+                if (editing == null) UsageSegments(listOf("Recurring", "One time"), if (oneShot) 1 else 0) {
+                    oneShot = it == 1
+                    timing = if (oneShot) "" else "0 8 * * *"
                 }
+                if (!oneShot && !advancedTiming) {
+                    UsageSegments(listOf("Daily", "Weekdays", "Weekends"), frequency) { frequency = it }
+                    OutlinedTextField(executionTime, { executionTime = it }, label = { Text("Time · HH:mm") }, enabled = !saving, singleLine = true)
+                } else {
+                    OutlinedTextField(timing, { timing = it }, label = { Text(if (oneShot) "Date & time with offset" else "Cron expression") }, enabled = !saving, singleLine = true)
+                    Text(if (oneShot) "Example: 2026-12-01T08:00:00+05:30" else "Minute · hour · day · month · weekday\n0 8 * * * = every day at 08:00", style = VelocityTypography.bodySmall, color = VelocityColors.TextMuted)
+                }
+                if (!oneShot) TextButton(enabled = !saving, onClick = {
+                    if (!advancedTiming) {
+                        val time = runCatching { java.time.LocalTime.parse(executionTime.trim()) }.getOrNull()
+                        if (time != null) timing = "${time.minute} ${time.hour} * * ${listOf("*", "1-5", "6,0")[frequency]}"
+                    }
+                    advancedTiming = !advancedTiming
+                }) { Text(if (advancedTiming) "Use simple schedule" else "Custom cron schedule") }
+                OutlinedTextField(timezone, { timezone = it }, label = { Text("Time zone") }, enabled = !saving, singleLine = true)
+                Text("Use an IANA zone such as Asia/Kolkata or America/New_York. Existing skill and status are preserved.", style = VelocityTypography.bodySmall, color = VelocityColors.TextMuted)
+                editorError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
-        }
+        },
+        confirmButton = { TextButton(enabled = !saving, onClick = { save() }) { Text(if (saving) "Saving…" else "Save routine") } },
+        dismissButton = { TextButton(enabled = !saving, onClick = { editorOpen = false }) { Text("Cancel") } }
+    )
+    deleting?.let { routine ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text("Delete routine?") },
+            text = { Text("“${routine.name}” will no longer run.") },
+            confirmButton = { TextButton(onClick = {
+                deleting = null
+                scope.launch { if (repository.deleteSchedule(routine.id)) load() else error = "Could not delete this routine." }
+            }) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } }
+        )
     }
 }
 
@@ -1493,7 +1314,7 @@ private fun SkillsTabSubpage(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF141416))
+                    .background(VelocityColors.SurfaceCard)
                     .padding(16.dp)
             ) {
                 Row(
@@ -1506,13 +1327,13 @@ private fun SkillsTabSubpage(
                         fontFamily = SatoshiFontFamily,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = VelocityColors.TextPrimary
                     )
 
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White)
+                            .background(VelocityColors.TextPrimary)
                             .clickable { saveInstructions() }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
@@ -1520,12 +1341,12 @@ private fun SkillsTabSubpage(
                             text = if (isSavingSkill) "Saving..." else "Save",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = VelocityColors.Canvas
                         )
                     }
                 }
 
-                HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF222226))
+                HorizontalDivider(thickness = 0.5.dp, color = VelocityColors.SurfaceElevated)
 
                 TextField(
                     value = instructionsDraft,
@@ -1534,8 +1355,8 @@ private fun SkillsTabSubpage(
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = VelocityColors.TextPrimary,
+                        unfocusedTextColor = VelocityColors.TextPrimary,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     ),
@@ -1544,7 +1365,7 @@ private fun SkillsTabSubpage(
             }
         } else if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                CircularProgressIndicator(color = VelocityColors.TextPrimary, modifier = Modifier.size(24.dp))
             }
         } else if (skills.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -1560,7 +1381,7 @@ private fun SkillsTabSubpage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF141416))
+                            .background(VelocityColors.SurfaceCard)
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -1571,7 +1392,7 @@ private fun SkillsTabSubpage(
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = VelocityColors.TextPrimary
                             )
                             Text(
                                 text = skill.description.ifEmpty { "Modular skill" },
@@ -1587,7 +1408,7 @@ private fun SkillsTabSubpage(
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF38BDF8),
+                                color = VelocityColors.AccentSky,
                                 modifier = Modifier
                                     .padding(top = 6.dp)
                                     .clickable {
@@ -1606,10 +1427,10 @@ private fun SkillsTabSubpage(
                                 }
                             },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFF34D399),
-                                uncheckedThumbColor = Color(0xFFA1A1AA),
-                                uncheckedTrackColor = Color(0xFF1E1E22)
+                                checkedThumbColor = VelocityColors.TextPrimary,
+                                checkedTrackColor = VelocityColors.AccentEmerald,
+                                uncheckedThumbColor = VelocityColors.TextMuted,
+                                uncheckedTrackColor = VelocityColors.SurfaceCapsule
                             )
                         )
                     }
@@ -1635,7 +1456,7 @@ private fun SettingsSubpageHeader(title: String, onBack: () -> Unit) {
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF1E1E22))
+                .background(VelocityColors.SurfaceCapsule)
                 .clickable { onBack() },
             contentAlignment = Alignment.Center
         ) {
@@ -1661,23 +1482,20 @@ private fun SettingsSubpageHeader(title: String, onBack: () -> Unit) {
 private fun SectionCard(
     title: String,
     subtitle: String? = null,
+    icon: Int = LucideIcons.Settings,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF141416))
+            .background(VelocityColors.SurfaceCard)
             .padding(16.dp)
     ) {
-        Text(
-            text = title,
-            fontFamily = SatoshiFontFamily,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-            color = VelocityColors.TextMuted
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(painterResource(icon), null, tint = VelocityColors.TextMuted, modifier = Modifier.size(18.dp))
+            Text(title, style = VelocityTypography.titleSmall, color = VelocityColors.TextPrimary)
+        }
         if (subtitle != null) {
             Text(
                 text = subtitle,
@@ -1736,7 +1554,7 @@ private fun SettingsRowItem(
                     fontFamily = SatoshiFontFamily,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    color = VelocityColors.TextPrimary
                 )
                 Text(
                     text = subtitle,

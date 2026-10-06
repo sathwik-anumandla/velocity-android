@@ -341,22 +341,10 @@ class ChatRepository(private val config: ServerConfig, context: android.content.
     }
 
     suspend fun fetchSchedules(): List<ScheduledRoutine> {
-        return try {
-            val res = api.getSchedules()
-            if (!res.isSuccessful) return emptyList()
-            val raw = res.body()?.string() ?: return emptyList()
-            val element = json.parseToJsonElement(raw)
-            val array = if (element is kotlinx.serialization.json.JsonArray) element else return emptyList()
-            array.mapNotNull { itemElem ->
-                try {
-                    json.decodeFromJsonElement<ScheduledRoutine>(itemElem)
-                } catch (_: Exception) {
-                    null
-                }
-            }
-        } catch (_: Exception) {
-            emptyList()
-        }
+        val response = api.getSchedules()
+        check(response.isSuccessful) { "Could not load schedules (HTTP ${response.code()})." }
+        val body = response.body()?.string() ?: error("No schedule response received.")
+        return json.decodeFromString<List<ScheduledRoutine>>(body)
     }
 
     suspend fun createSchedule(
@@ -364,7 +352,8 @@ class ChatRepository(private val config: ServerConfig, context: android.content.
         eventType: String,
         prompt: String,
         cronExpression: String? = null,
-        runAt: String? = null
+        runAt: String? = null,
+        timezone: String = java.time.ZoneId.systemDefault().id
     ): Boolean {
         return try {
             val res = api.createSchedule(
@@ -374,7 +363,8 @@ class ChatRepository(private val config: ServerConfig, context: android.content.
                     prompt = prompt,
                     cronExpression = cronExpression,
                     runAt = runAt,
-                    sessionId = "main"
+                    sessionId = "main",
+                    timezone = timezone
                 )
             )
             res.isSuccessful
@@ -391,6 +381,10 @@ class ChatRepository(private val config: ServerConfig, context: android.content.
         } catch (_: Exception) {
             false
         }
+    }
+
+    suspend fun editSchedule(id: String, name: String, prompt: String, cronExpression: String?, runAt: String?, timezone: String): Boolean {
+        return api.updateSchedule(id, UpdateScheduleRequest(name = name, prompt = prompt, cronExpression = cronExpression, runAt = runAt, timezone = timezone)).isSuccessful
     }
 
     suspend fun deleteSchedule(id: String): Boolean {

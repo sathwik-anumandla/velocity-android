@@ -67,7 +67,7 @@ fun NavigationSheetHost(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF121214),
+        containerColor = VelocityColors.SurfaceCard,
         scrimColor = Color(0x99000000),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         dragHandle = {
@@ -77,7 +77,7 @@ fun NavigationSheetHost(
                     .width(36.dp)
                     .height(4.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF323236))
+                    .background(VelocityColors.SurfaceElevated)
             )
         }
     ) {
@@ -172,7 +172,7 @@ private fun ThreadsSheetContent(
                 Icon(
                     painter = painterResource(LucideIcons.Threads),
                     contentDescription = null,
-                    tint = Color(0xFFA78BFA),
+                    tint = VelocityColors.AccentViolet,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
@@ -185,7 +185,7 @@ private fun ThreadsSheetContent(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF1E1E22))
+                    .background(VelocityColors.SurfaceCapsule)
                     .clickable {
                         VelocityHaptics.subtleTick(context)
                         onDismiss()
@@ -209,7 +209,7 @@ private fun ThreadsSheetContent(
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = VelocityColors.TextPrimary,
                     modifier = Modifier.size(24.dp),
                     strokeWidth = 2.dp
                 )
@@ -225,7 +225,7 @@ private fun ThreadsSheetContent(
                     Icon(
                         painter = painterResource(LucideIcons.Threads),
                         contentDescription = null,
-                        tint = Color(0xFF3F3F46),
+                        tint = VelocityColors.SurfaceElevated,
                         modifier = Modifier.size(36.dp)
                     )
                     Spacer(modifier = Modifier.height(10.dp))
@@ -252,7 +252,7 @@ private fun ThreadsSheetContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF1A1A1E))
+                            .background(VelocityColors.SurfaceCapsule)
                             .clickable {
                                 VelocityHaptics.lightClick(context)
                                 onSelectThread(thread.id)
@@ -337,7 +337,7 @@ private fun DocumentsSheetContent(
                 Icon(
                     painter = painterResource(LucideIcons.Documents),
                     contentDescription = null,
-                    tint = Color(0xFF34D399),
+                    tint = VelocityColors.AccentEmerald,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
@@ -350,7 +350,7 @@ private fun DocumentsSheetContent(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF1E1E22))
+                    .background(VelocityColors.SurfaceCapsule)
                     .clickable {
                         VelocityHaptics.subtleTick(context)
                         onDismiss()
@@ -371,7 +371,7 @@ private fun DocumentsSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1A1A1E))
+                .background(VelocityColors.SurfaceCapsule)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Row(
@@ -387,7 +387,7 @@ private fun DocumentsSheetContent(
                 BasicTextField(
                     value = filterQuery,
                     onValueChange = { filterQuery = it },
-                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                    textStyle = TextStyle(color = VelocityColors.TextPrimary, fontSize = 14.sp),
                     cursorBrush = SolidColor(VelocityColors.AccentSky),
                     modifier = Modifier.weight(1f),
                     decorationBox = { innerTextField ->
@@ -409,7 +409,7 @@ private fun DocumentsSheetContent(
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(color = VelocityColors.TextPrimary, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             }
         } else if (filtered.isEmpty()) {
             Box(
@@ -435,14 +435,14 @@ private fun DocumentsSheetContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF1A1A1E))
+                            .background(VelocityColors.SurfaceCard)
                             .clickable {
                                 VelocityHaptics.lightClick(context)
                                 onOpenArtifact(doc)
                             }
                             .padding(16.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -452,17 +452,17 @@ private fun DocumentsSheetContent(
                                     text = doc.title,
                                     style = VelocityTypography.titleMedium,
                                     color = VelocityColors.TextPrimary,
-                                    maxLines = 1,
+                                    maxLines = 2,
                                     modifier = Modifier.weight(1f)
                                 )
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(0xFF26262B))
+                                        .background(VelocityColors.SurfaceElevated)
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = doc.artifactType.uppercase(),
+                                        text = doc.artifactType.replace('_', ' '),
                                         style = MonoTextStyle.copy(fontSize = 10.sp),
                                         color = VelocityColors.AccentSky
                                     )
@@ -525,7 +525,7 @@ private fun SearchSheetContent(
                 Icon(
                     painter = painterResource(LucideIcons.Search),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = VelocityColors.TextPrimary,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
@@ -538,7 +538,7 @@ private fun SearchSheetContent(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF1E1E22))
+                    .background(VelocityColors.SurfaceCapsule)
                     .clickable {
                         VelocityHaptics.subtleTick(context)
                         onDismiss()
@@ -558,7 +558,7 @@ private fun SearchSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1A1A1E))
+                .background(VelocityColors.SurfaceCapsule)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Row(
@@ -574,7 +574,7 @@ private fun SearchSheetContent(
                 BasicTextField(
                     value = query,
                     onValueChange = { query = it },
-                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                    textStyle = TextStyle(color = VelocityColors.TextPrimary, fontSize = 14.sp),
                     cursorBrush = SolidColor(VelocityColors.AccentSky),
                     modifier = Modifier.weight(1f),
                     decorationBox = { innerTextField ->
@@ -606,7 +606,7 @@ private fun SearchSheetContent(
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(color = VelocityColors.TextPrimary, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             }
         } else if (results.isEmpty()) {
             Box(
@@ -632,7 +632,7 @@ private fun SearchSheetContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF1A1A1E))
+                            .background(VelocityColors.SurfaceCapsule)
                             .clickable {
                                 VelocityHaptics.lightClick(context)
                                 onSelectMessage(item.sessionId)
@@ -693,7 +693,7 @@ private fun ChronologySheetContent(
                 Icon(
                     painter = painterResource(LucideIcons.Chronology),
                     contentDescription = null,
-                    tint = Color(0xFFC084FC),
+                    tint = VelocityColors.AccentViolet,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
@@ -706,7 +706,7 @@ private fun ChronologySheetContent(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF1E1E22))
+                    .background(VelocityColors.SurfaceCapsule)
                     .clickable {
                         VelocityHaptics.subtleTick(context)
                         onDismiss()
@@ -729,7 +729,7 @@ private fun ChronologySheetContent(
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(color = VelocityColors.TextPrimary, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             }
         } else if (events.isEmpty()) {
             Box(
@@ -755,7 +755,7 @@ private fun ChronologySheetContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF1A1A1E))
+                            .background(VelocityColors.SurfaceCapsule)
                             .clickable {
                                 (ev.metadata?.get("thread_id") as? kotlinx.serialization.json.JsonPrimitive)?.content?.let { threadId ->
                                     VelocityHaptics.lightClick(context)
@@ -772,7 +772,7 @@ private fun ChronologySheetContent(
                                 Text(
                                     text = ev.type.uppercase(),
                                     style = MonoTextStyle.copy(fontSize = 10.sp),
-                                    color = Color(0xFFA78BFA)
+                                    color = VelocityColors.AccentViolet
                                 )
                                 ev.timestamp?.let {
                                     Text(
@@ -833,7 +833,7 @@ private fun SettingsSheetContent(
                 Icon(
                     painter = painterResource(LucideIcons.Settings),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = VelocityColors.TextPrimary,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
@@ -846,7 +846,7 @@ private fun SettingsSheetContent(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF1E1E22))
+                    .background(VelocityColors.SurfaceCapsule)
                     .clickable {
                         VelocityHaptics.subtleTick(context)
                         onDismiss()
@@ -867,7 +867,7 @@ private fun SettingsSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF1A1A1E))
+                .background(VelocityColors.SurfaceCapsule)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -895,7 +895,7 @@ private fun SettingsSheetContent(
                 Text(
                     text = if (serverConfig.cfClientId.isNotBlank()) "Configured" else "Direct",
                     style = MonoTextStyle,
-                    color = if (serverConfig.cfClientId.isNotBlank()) Color(0xFF34D399) else VelocityColors.TextDim
+                    color = if (serverConfig.cfClientId.isNotBlank()) VelocityColors.AccentEmerald else VelocityColors.TextDim
                 )
             }
             Row(
@@ -907,7 +907,7 @@ private fun SettingsSheetContent(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF26262B))
+                        .background(VelocityColors.SurfaceElevated)
                         .clickable {
                             if (!isChecking) {
                                 isChecking = true
@@ -924,7 +924,7 @@ private fun SettingsSheetContent(
                     Text(
                         text = pingStatus ?: "Test Ping",
                         style = MonoTextStyle.copy(fontSize = 11.sp),
-                        color = if (pingStatus == "Operational") Color(0xFF34D399) else Color(0xFFFBBF24)
+                        color = if (pingStatus == "Operational") VelocityColors.AccentEmerald else VelocityColors.AccentAmber
                     )
                 }
             }
@@ -938,7 +938,7 @@ private fun SettingsSheetContent(
                 .fillMaxWidth()
                 .height(48.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFF2C1515))
+                .background(androidx.compose.material3.MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
                 .clickable {
                     VelocityHaptics.lightClick(context)
                     onDisconnect()
@@ -948,7 +948,7 @@ private fun SettingsSheetContent(
             Text(
                 text = "Disconnect & Re-pair",
                 style = VelocityTypography.titleSmall,
-                color = Color(0xFFFF6B6B),
+                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                 fontWeight = FontWeight.SemiBold
             )
         }

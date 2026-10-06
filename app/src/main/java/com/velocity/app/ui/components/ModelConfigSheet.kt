@@ -52,7 +52,7 @@ fun ModelConfigSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF141416),
+        containerColor = VelocityColors.SurfaceCard,
         scrimColor = Color(0x99000000),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         dragHandle = {
@@ -62,7 +62,7 @@ fun ModelConfigSheet(
                     .width(36.dp)
                     .height(4.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF323236))
+                    .background(VelocityColors.SurfaceElevated)
             )
         }
     ) {
@@ -88,7 +88,7 @@ fun ModelConfigSheet(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF222226))
+                        .background(VelocityColors.SurfaceElevated)
                         .clickable {
                             VelocityHaptics.lightClick(context)
                             onDismiss()
@@ -98,7 +98,7 @@ fun ModelConfigSheet(
                     Icon(
                         painter = painterResource(LucideIcons.Close),
                         contentDescription = "Done",
-                        tint = Color.White,
+                        tint = VelocityColors.TextPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -116,7 +116,7 @@ fun ModelConfigSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF1A1A1E)),
+                        .background(VelocityColors.SurfaceCapsule),
                     verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
                     supportedModels.forEachIndexed { index, (modelId, desc) ->
@@ -124,7 +124,7 @@ fun ModelConfigSheet(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(if (isSelected) Color(0xFF24242A) else Color(0xFF1A1A1E))
+                                .background(if (isSelected) VelocityColors.SurfaceElevated else VelocityColors.SurfaceCapsule)
                                 .clickable {
                                     VelocityHaptics.subtleTick(context)
                                     onConfigChange(currentConfig.copy(model = modelId))
@@ -139,7 +139,7 @@ fun ModelConfigSheet(
                                     fontFamily = SatoshiFontFamily,
                                     fontSize = 15.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color.White else VelocityColors.TextSecondary
+                                    color = if (isSelected) VelocityColors.TextPrimary else VelocityColors.TextSecondary
                                 )
                                 Text(
                                     text = desc,
@@ -152,7 +152,7 @@ fun ModelConfigSheet(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White)
+                                        .background(VelocityColors.TextPrimary)
                                 )
                             }
                         }
@@ -172,7 +172,7 @@ fun ModelConfigSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFF1A1A1E))
+                        .background(VelocityColors.SurfaceCapsule)
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -182,7 +182,7 @@ fun ModelConfigSheet(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) Color(0xFF2E2E34) else Color.Transparent)
+                                .background(if (isSelected) VelocityColors.SurfaceElevated else Color.Transparent)
                                 .clickable {
                                     VelocityHaptics.subtleTick(context)
                                     onConfigChange(currentConfig.copy(thinkingEffort = effort))
@@ -195,7 +195,7 @@ fun ModelConfigSheet(
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 13.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) Color.White else VelocityColors.TextMuted
+                                color = if (isSelected) VelocityColors.TextPrimary else VelocityColors.TextMuted
                             )
                         }
                     }
@@ -214,7 +214,7 @@ fun ModelConfigSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFF1A1A1E))
+                        .background(VelocityColors.SurfaceCapsule)
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -224,7 +224,7 @@ fun ModelConfigSheet(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) Color(0xFF2E2E34) else Color.Transparent)
+                                .background(if (isSelected) VelocityColors.SurfaceElevated else Color.Transparent)
                                 .clickable {
                                     VelocityHaptics.subtleTick(context)
                                     onConfigChange(currentConfig.copy(verbosity = verbKey))
@@ -237,7 +237,7 @@ fun ModelConfigSheet(
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 13.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) Color.White else VelocityColors.TextMuted
+                                color = if (isSelected) VelocityColors.TextPrimary else VelocityColors.TextMuted
                             )
                         }
                     }
@@ -256,7 +256,7 @@ fun ModelConfigSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFF1A1A1E))
+                        .background(VelocityColors.SurfaceCapsule)
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -266,7 +266,7 @@ fun ModelConfigSheet(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) Color(0xFF2E2E34) else Color.Transparent)
+                                .background(if (isSelected) VelocityColors.SurfaceElevated else Color.Transparent)
                                 .clickable {
                                     VelocityHaptics.subtleTick(context)
                                     onConfigChange(currentConfig.copy(recallBudget = recKey))
@@ -279,7 +279,7 @@ fun ModelConfigSheet(
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 13.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) Color.White else VelocityColors.TextMuted
+                                color = if (isSelected) VelocityColors.TextPrimary else VelocityColors.TextMuted
                             )
                         }
                     }
@@ -290,4 +290,3 @@ fun ModelConfigSheet(
         }
     }
 }
-

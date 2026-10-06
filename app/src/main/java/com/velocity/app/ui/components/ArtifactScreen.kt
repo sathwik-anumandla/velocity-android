@@ -9,10 +9,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.velocity.app.data.model.ArtifactItem
@@ -29,9 +32,10 @@ fun ArtifactScreen(repository: ChatRepository, artifactId: String, onBack: () ->
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var artifact by remember(artifactId) { mutableStateOf<ArtifactItem?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var busy by remember { mutableStateOf(false) }
-    var exporting by remember { mutableStateOf(false) }
+    var error by remember(artifactId) { mutableStateOf<String?>(null) }
+    var busy by remember(artifactId) { mutableStateOf(false) }
+    var exporting by remember(artifactId) { mutableStateOf(false) }
+    var copied by remember(artifactId) { mutableStateOf(false) }
 
     fun refresh() {
         if (busy) return
@@ -40,6 +44,8 @@ fun ArtifactScreen(repository: ChatRepository, artifactId: String, onBack: () ->
             try {
                 artifact = repository.fetchArtifact(artifactId)
                 error = null
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (failure: Exception) {
                 error = failure.message
             } finally {
@@ -50,21 +56,23 @@ fun ArtifactScreen(repository: ChatRepository, artifactId: String, onBack: () ->
 
     BackHandler(onBack = onBack)
     LaunchedEffect(artifactId) { refresh() }
-    Column(Modifier.fillMaxSize().background(VelocityColors.Canvas).statusBarsPadding().navigationBarsPadding().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = onBack) { Text("Back") }
-            TextButton(onClick = { refresh() }, enabled = !busy) { Text("Refresh") }
+    LaunchedEffect(copied) { if (copied) { kotlinx.coroutines.delay(2000); copied = false } }
+    Column(Modifier.fillMaxSize().background(VelocityColors.Canvas).statusBarsPadding().navigationBarsPadding()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(painterResource(LucideIcons.ChevronLeft), "Back to chat", tint = VelocityColors.TextPrimary) }
+            Text("Documents", color = VelocityColors.TextPrimary, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = { refresh() }, enabled = !busy) { Icon(painterResource(LucideIcons.Refresh), "Refresh document", tint = VelocityColors.TextMuted) }
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(20.dp)); if (artifact == null) TextButton(onClick = { refresh() }, enabled = !busy) { Text("Try again") } }
         artifact?.let { document ->
-            Text(document.title, color = VelocityColors.TextPrimary, style = MaterialTheme.typography.headlineSmall)
-            Text("${document.artifactType} · ${document.language}", color = VelocityColors.TextMuted)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                TextButton(onClick = {
+            val words = remember(document.content) { document.content.trim().split(Regex("\\s+")).count { it.isNotEmpty() } }
+            FlowRow(Modifier.padding(horizontal = 20.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(onClick = {
                     (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText(document.title, document.content))
-                }) { Text("Copy") }
-                TextButton(onClick = {
+                    copied = true
+                }) { Icon(painterResource(LucideIcons.Copy), null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(6.dp)); Text(if (copied) "Copied" else "Copy") }
+                FilledTonalButton(onClick = {
                     try {
                         context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
@@ -72,8 +80,8 @@ fun ArtifactScreen(repository: ChatRepository, artifactId: String, onBack: () ->
                             putExtra(Intent.EXTRA_TEXT, document.content)
                         }, "Share document"))
                     } catch (failure: Exception) { error = failure.message }
-                }) { Text("Share") }
-                TextButton(enabled = !exporting, onClick = {
+                }) { Icon(painterResource(LucideIcons.Share), null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(6.dp)); Text("Share") }
+                FilledTonalButton(enabled = !exporting, onClick = {
                     exporting = true
                     scope.launch {
                         try {
@@ -90,18 +98,27 @@ fun ArtifactScreen(repository: ChatRepository, artifactId: String, onBack: () ->
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }, "Save or share PDF"))
                             error = null
-                        } catch (failure: Exception) { error = failure.message }
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                        catch (failure: Exception) { error = failure.message }
                         finally { exporting = false }
                     }
-                }) { Text(if (exporting) "Exporting…" else "PDF") }
+                }) { Icon(painterResource(LucideIcons.Download), null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(6.dp)); Text(if (exporting) "Exporting…" else "PDF") }
             }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp)) {
+            Column(Modifier.weight(1f).fillMaxWidth().background(VelocityColors.SurfaceCard).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                Column(Modifier.fillMaxWidth().background(VelocityColors.Canvas, RoundedCornerShape(20.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(document.artifactType.replace('_', ' ').uppercase(), color = VelocityColors.AccentEmerald, style = MaterialTheme.typography.labelSmall)
+                    Text(document.title, color = VelocityColors.TextPrimary, style = MaterialTheme.typography.headlineLarge)
+                    Text("$words words · ${document.language}", color = VelocityColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+                    if (document.summary.isNotBlank()) Text(document.summary, color = VelocityColors.TextSecondary, style = MaterialTheme.typography.bodyMedium)
+                }
+                Column(Modifier.fillMaxWidth().background(VelocityColors.Canvas, RoundedCornerShape(20.dp)).padding(20.dp)) {
                 if (document.language == "markdown") {
                     FormattedMarkdownText(document.content, isUser = false, isThread = true)
                 } else {
                     androidx.compose.foundation.text.selection.SelectionContainer {
                         Text(document.content, color = VelocityColors.TextPrimary, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
                     }
+                }
                 }
             }
         }

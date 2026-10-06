@@ -8,17 +8,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.painterResource
+import com.velocity.app.ui.components.LucideIcons
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.*
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.velocity.app.data.model.DailyUsage
 import com.velocity.app.data.model.UsagePeriod
@@ -89,67 +90,48 @@ internal fun UsageSegments(options: List<String>, selectedIndex: Int, onSelect: 
 }
 
 @Composable
-internal fun UsageStat(label: String, value: String, hint: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier.background(VelocityColors.SurfaceCard, RoundedCornerShape(18.dp)).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = VelocityColors.TextMuted)
-        Text(value, style = MaterialTheme.typography.headlineLarge, color = VelocityColors.TextPrimary)
-        Text(hint, style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
-    }
-}
-
-@Composable
-internal fun UsageInsight(title: String, value: Double, available: Boolean, detail: String, color: Color) {
-    UsagePanel(title) {
-        Text(if (available) usagePercent(value) else "—", style = MaterialTheme.typography.headlineLarge, color = VelocityColors.TextPrimary)
-        Box(
-            Modifier.fillMaxWidth().height(8.dp).background(VelocityColors.SurfaceElevated, RoundedCornerShape(8.dp))
-                .semantics { contentDescription = if (available) "$title: ${usagePercent(value)}" else "$title: provider data unavailable" }
-        ) {
-            if (available && value > 0) Box(Modifier.fillMaxWidth(value.toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(color, RoundedCornerShape(8.dp)))
+internal fun UsageOverview(value: UsagePeriod) {
+    UsagePanel("Estimated spending") {
+        Text(if (value.unpricedCalls > 0 && value.costUsd == 0.0) "Unpriced" else usageUsd(value.costUsd), style = MaterialTheme.typography.displaySmall, color = VelocityColors.TextPrimary)
+        Text("USD · priced model calls only", style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
+        androidx.compose.material3.HorizontalDivider(color = VelocityColors.SurfaceElevated)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf("Total tokens" to usageCount(value.inputTokens + value.outputTokens), "API calls" to usageCount(value.calls), "Cache savings" to usageUsd(value.cacheSavingsUsd)).forEach { (label, count) ->
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(label, style = MaterialTheme.typography.labelSmall, color = VelocityColors.TextMuted)
+                    Text(count, style = MaterialTheme.typography.titleSmall, color = VelocityColors.TextPrimary)
+                }
+            }
         }
-        Text(detail, style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
     }
 }
 
 @Composable
 internal fun UsageTokenMix(value: UsagePeriod) {
-    val total = value.inputTokens + value.outputTokens
-    UsagePanel("Token breakdown", "Input + output = total. Reasoning is already included in output.") {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            Box(Modifier.size(116.dp), contentAlignment = Alignment.Center) {
-                Canvas(Modifier.fillMaxSize().semantics { contentDescription = "${usageCount(value.inputTokens)} input tokens and ${usageCount(value.outputTokens)} output tokens" }) {
-                    val stroke = 8.dp.toPx()
-                    val diameter = size.minDimension - stroke
-                    val origin = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)
-                    drawArc(if (total > 0) Color(0xFF818CF8) else VelocityColors.SurfaceElevated, -90f, 360f, false, origin, Size(diameter, diameter), style = Stroke(stroke))
-                    if (total > 0) drawArc(VelocityColors.TextSecondary, -90f, (value.inputTokens.toDouble() / total * 360).toFloat(), false, origin, Size(diameter, diameter), style = Stroke(stroke))
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clearAndSetSemantics {}) {
-                    Text(usageCompact(total), style = MaterialTheme.typography.titleLarge, color = VelocityColors.TextPrimary)
-                    Text("total tokens", style = MaterialTheme.typography.labelSmall, color = VelocityColors.TextMuted)
-                }
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                TokenLegend("Input", usageCount(value.inputTokens), VelocityColors.TextSecondary)
-                TokenLegend("Output", usageCount(value.outputTokens), Color(0xFF818CF8))
-            }
-        }
-        Text("Cached input: ${if (value.cacheReported > 0) usageCount(value.cachedTokens) else "not reported"} · Cache writes: ${if (value.cacheReported > 0) usageCount(value.cacheWriteTokens) else "not reported"}", style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
-        Text("Reasoning: ${if (value.reasoningReported > 0) usageCount(value.reasoningTokens) else "not reported"}", style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
+    UsagePanel("Tokens", "Cached input and reasoning are subsets, not additional tokens.") {
+        TokenCategory("Input tokens", value.inputTokens, "Cached input", value.cachedTokens, value.cacheReported, value.cacheHitRate, "of reported input served from cache", VelocityColors.AccentSky)
+        TokenCategory("Output tokens", value.outputTokens, "Reasoning", value.reasoningTokens, value.reasoningReported, value.reasoningShare, "of reported output used for reasoning", VelocityColors.AccentViolet)
+        if (value.cacheReported > 0 && value.cacheWriteTokens > 0) Text("Cache writes: ${usageCount(value.cacheWriteTokens)} tokens · reported separately", style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
     }
 }
 
 @Composable
-private fun TokenLegend(label: String, value: String, color: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+private fun TokenCategory(label: String, count: Long, subset: String, subsetCount: Long, reported: Long, share: Double, note: String, color: Color) {
+    Column(Modifier.fillMaxWidth().background(VelocityColors.SurfaceCapsule, RoundedCornerShape(14.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.size(7.dp).background(color, RoundedCornerShape(7.dp)))
             Text(label, style = MaterialTheme.typography.labelMedium, color = VelocityColors.TextMuted)
         }
-        Text(value, style = MaterialTheme.typography.titleMedium, color = VelocityColors.TextPrimary)
+        Text(usageCount(count), style = MaterialTheme.typography.headlineLarge, color = VelocityColors.TextPrimary)
+        androidx.compose.material3.HorizontalDivider(color = VelocityColors.SurfaceElevated)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(subset, style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
+            Text(if (reported > 0) usageCount(subsetCount) else "Not reported", style = MaterialTheme.typography.titleSmall, color = VelocityColors.TextPrimary)
+        }
+        Box(Modifier.fillMaxWidth().height(4.dp).background(VelocityColors.SurfaceElevated, RoundedCornerShape(4.dp))) {
+            if (reported > 0 && share > 0) Box(Modifier.fillMaxWidth(share.toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(color, RoundedCornerShape(4.dp)))
+        }
+        Text(if (reported > 0) "${usagePercent(share)} $note · ${usageCount(reported)} reporting calls" else "Your provider has not reported this breakdown.", style = MaterialTheme.typography.labelSmall, color = VelocityColors.TextMuted)
     }
 }
 
@@ -181,23 +163,23 @@ internal fun UsageDailyChart(days: List<DailyUsage>) {
                 for (fraction in listOf(0f, 0.5f, 1f)) drawLine(VelocityColors.SurfaceElevated, Offset(0f, size.height * fraction), Offset(size.width, size.height * fraction), 1.dp.toPx())
                 days.forEachIndexed { index, day ->
                     val height = if (maximum > 0) (amount(day) / maximum * size.height).toFloat().coerceAtLeast(2.dp.toPx()) else 2.dp.toPx()
-                    drawRect(if (index == selectedIndex) Color(0xFF818CF8) else VelocityColors.TextDim, Offset(index * slot + gap / 2, size.height - height), Size(slot - gap, height))
+                    drawRect(if (index == selectedIndex) VelocityColors.AccentIndigo else VelocityColors.TextDim, Offset(index * slot + gap / 2, size.height - height), Size(slot - gap, height))
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(usageDate(days.first().date), style = MaterialTheme.typography.labelSmall, color = VelocityColors.TextMuted)
                 Text(usageDate(days.last().date), style = MaterialTheme.typography.labelSmall, color = VelocityColors.TextMuted)
             }
-            Column(
+            Row(
                 Modifier.fillMaxWidth().background(VelocityColors.SurfaceCapsule, RoundedCornerShape(12.dp)).padding(12.dp).semantics { liveRegion = LiveRegionMode.Polite },
-                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(enabled = selectedIndex > 0, onClick = { selectedDate = days[selectedIndex - 1].date }) { Icon(painterResource(LucideIcons.ChevronLeft), "Previous day", tint = if (selectedIndex > 0) VelocityColors.TextPrimary else VelocityColors.TextDim, modifier = Modifier.size(20.dp)) }
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("${usageDate(selected.date)} · ${display(amount(selected))} ${if (metric == 1) "estimated" else metricLabel}", style = MaterialTheme.typography.titleSmall, color = VelocityColors.TextPrimary)
                 Text("${usageCount(selected.calls)} calls" + (if (selected.unpricedCalls > 0) " · ${selected.unpricedCalls} unpriced" else "") + (if (selected.unreportedCalls > 0) " · ${selected.unreportedCalls} missing usage" else ""), style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(enabled = selectedIndex > 0, onClick = { selectedDate = days[selectedIndex - 1].date }) { Text("Previous day", color = if (selectedIndex > 0) VelocityColors.TextPrimary else VelocityColors.TextDim) }
-                    TextButton(enabled = selectedIndex < days.lastIndex, onClick = { selectedDate = days[selectedIndex + 1].date }) { Text("Next day", color = if (selectedIndex < days.lastIndex) VelocityColors.TextPrimary else VelocityColors.TextDim) }
                 }
+                IconButton(enabled = selectedIndex < days.lastIndex, onClick = { selectedDate = days[selectedIndex + 1].date }) { Icon(painterResource(LucideIcons.ChevronRight), "Next day", tint = if (selectedIndex < days.lastIndex) VelocityColors.TextPrimary else VelocityColors.TextDim, modifier = Modifier.size(20.dp)) }
             }
             if (maximum == 0.0) Text(if (metric == 1) "No priced spending recorded. Unpriced calls are not free calls." else "No tracked activity for this metric in this window.", style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
         }

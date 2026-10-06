@@ -20,7 +20,10 @@ data class ScheduledRoutine(
     val prompt: String = "",
     @SerialName("cron_expression") val cronExpression: String? = null,
     @SerialName("run_at") val runAt: String? = null,
-    val status: String = "active"
+    val status: String = "active",
+    val timezone: String = "Asia/Kolkata",
+    @SerialName("skill_id") val skillId: String? = null,
+    @SerialName("next_run_at") val nextRunAt: String? = null
 )
 
 @Serializable

@@ -1,47 +1,59 @@
 package com.velocity.app.ui.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
+import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val VelocityColorScheme = darkColorScheme(
-    primary = VelocityColors.TextPrimary,
-    onPrimary = VelocityColors.Canvas,
-    primaryContainer = VelocityColors.SurfaceCapsule,
-    onPrimaryContainer = VelocityColors.TextPrimary,
-    background = VelocityColors.Canvas,
-    onBackground = VelocityColors.TextPrimary,
-    surface = VelocityColors.SurfaceCard,
-    onSurface = VelocityColors.TextPrimary,
-    surfaceVariant = VelocityColors.SurfaceCapsule,
-    onSurfaceVariant = VelocityColors.TextSecondary,
-)
+object ThemePreference {
+    var mode by mutableStateOf("oled")
+        private set
+
+    fun load(context: Context) {
+        mode = context.getSharedPreferences("velocity_appearance", Context.MODE_PRIVATE).getString("theme", "oled") ?: "oled"
+    }
+
+    fun select(context: Context, value: String) {
+        mode = value
+        context.getSharedPreferences("velocity_appearance", Context.MODE_PRIVATE).edit().putString("theme", value).apply()
+    }
+}
 
 @Composable
-fun VelocityTheme(
-    content: @Composable () -> Unit
-) {
+fun VelocityTheme(content: @Composable () -> Unit) {
+    val scheme = if (VelocityColors.isLight) lightColorScheme() else darkColorScheme()
+    val colors = scheme.copy(
+        primary = VelocityColors.TextPrimary,
+        onPrimary = VelocityColors.Canvas,
+        primaryContainer = VelocityColors.SurfaceCapsule,
+        onPrimaryContainer = VelocityColors.TextPrimary,
+        secondaryContainer = VelocityColors.SurfaceCapsule,
+        onSecondaryContainer = VelocityColors.TextPrimary,
+        background = VelocityColors.Canvas,
+        onBackground = VelocityColors.TextPrimary,
+        surface = VelocityColors.SurfaceCard,
+        onSurface = VelocityColors.TextPrimary,
+        surfaceVariant = VelocityColors.SurfaceCapsule,
+        onSurfaceVariant = VelocityColors.TextSecondary,
+        surfaceContainer = VelocityColors.SurfaceCard,
+        surfaceContainerHigh = VelocityColors.SurfaceElevated,
+        outline = VelocityColors.TextDim
+    )
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = VelocityColors.Canvas.toArgb()
-            window.navigationBarColor = VelocityColors.Canvas.toArgb()
+            window.statusBarColor = colors.background.toArgb()
+            window.navigationBarColor = colors.background.toArgb()
             val controller = WindowCompat.getInsetsController(window, view)
-            controller.isAppearanceLightStatusBars = false
-            controller.isAppearanceLightNavigationBars = false
+            controller.isAppearanceLightStatusBars = VelocityColors.isLight
+            controller.isAppearanceLightNavigationBars = VelocityColors.isLight
         }
     }
-
-    MaterialTheme(
-        colorScheme = VelocityColorScheme,
-        typography = VelocityTypography,
-        content = content
-    )
+    MaterialTheme(colorScheme = colors, typography = VelocityTypography, content = content)
 }

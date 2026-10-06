@@ -96,7 +96,7 @@ fun ChatCapsule(
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF16161A))
+                    .background(VelocityColors.SurfaceCard)
                     .clickable {
                         val threadId = message.threadProposal?.threadId
                         if (threadId != null) onOpenThread?.invoke(threadId)
@@ -105,7 +105,7 @@ fun ChatCapsule(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.wrapContentWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -123,7 +123,7 @@ fun ChatCapsule(
                                 Icon(
                                     painter = painterResource(LucideIcons.Threads),
                                     contentDescription = null,
-                                    tint = Color(0xFFA78BFA),
+                                    tint = VelocityColors.AccentViolet,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -132,7 +132,7 @@ fun ChatCapsule(
                                 fontFamily = SatoshiFontFamily,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = VelocityColors.TextPrimary
                             )
                         }
 
@@ -147,7 +147,7 @@ fun ChatCapsule(
                                 fontSize = 10.sp,
                                 fontFamily = SatoshiFontFamily,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFA78BFA)
+                                color = VelocityColors.AccentViolet
                             )
                         }
                     }
@@ -158,7 +158,7 @@ fun ChatCapsule(
                             fontFamily = SatoshiFontFamily,
                             fontSize = 13.sp,
                             lineHeight = 18.sp,
-                            color = Color(0xFFD4D4D8)
+                            color = VelocityColors.TextSecondary
                         )
                     }
 
@@ -172,12 +172,12 @@ fun ChatCapsule(
                             fontFamily = SatoshiFontFamily,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFA78BFA)
+                            color = VelocityColors.AccentViolet
                         )
                         Icon(
                             painter = painterResource(LucideIcons.ChevronRight),
                             contentDescription = null,
-                            tint = Color(0xFFA78BFA),
+                            tint = VelocityColors.AccentViolet,
                             modifier = Modifier.size(12.dp)
                         )
                     }
@@ -216,21 +216,24 @@ fun ChatCapsule(
         } else if (displayContent.isNotEmpty()) {
             Box(
                 modifier = Modifier
-                    .widthIn(max = 330.dp)
+                    .widthIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp - 32.dp) * 0.9f)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(if (isUser) Color(0xFF1E1E22) else Color(0xFF141416))
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .background(if (isUser) VelocityColors.SurfaceCapsule else VelocityColors.SurfaceCard)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Column {
                     if (routineType != null) {
                         GlowingRoutineLabel(type = routineType)
                     }
 
-                    FormattedMarkdownText(
-                        content = displayContent,
-                        isUser = isUser,
-                        selectable = onLongPress == null
-                    )
+                    if (isUser) {
+                        val userText: @Composable () -> Unit = {
+                            Text(displayContent, color = VelocityColors.TextPrimary, fontFamily = SatoshiFontFamily, fontSize = 15.sp, lineHeight = 22.sp)
+                        }
+                        if (onLongPress == null) SelectionContainer { userText() } else userText()
+                    } else {
+                        FormattedMarkdownText(content = displayContent, isUser = false, selectable = onLongPress == null)
+                    }
                 }
             }
         } else if (message.isStreaming && !isUser) {
@@ -238,7 +241,7 @@ fun ChatCapsule(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF141416))
+                    .background(VelocityColors.SurfaceCard)
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 BouncingDotsIndicator()
@@ -255,8 +258,8 @@ fun FormattedMarkdownText(
     selectable: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val textColor = if (isUser) Color.White else Color(0xFFD4D4D8)
-    val accentColor = Color(0xFF38BDF8)
+    val textColor = if (isUser) VelocityColors.TextPrimary else VelocityColors.TextSecondary
+    val accentColor = VelocityColors.AccentSky
     val bodyStyle = TextStyle(
         fontFamily = SatoshiFontFamily,
         fontSize = if (isThread) 15.5.sp else 15.sp,
@@ -271,12 +274,12 @@ fun FormattedMarkdownText(
         lineHeight = 18.sp,
         color = accentColor
     )
-    val codeBackground = if (isThread) Color.Transparent else Color(0xFF202024)
+    val codeBackground = if (isThread) Color.Transparent else VelocityColors.SurfaceCode
 
     val rendered: @Composable () -> Unit = {
         Markdown(
             content = content,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.wrapContentWidth(),
             colors = markdownColor(
                 text = textColor,
                 codeText = accentColor,
@@ -284,7 +287,7 @@ fun FormattedMarkdownText(
                 linkText = accentColor,
                 codeBackground = codeBackground,
                 inlineCodeBackground = codeBackground,
-                dividerColor = Color(0xFF3F3F46),
+                dividerColor = VelocityColors.SurfaceElevated,
                 tableText = textColor,
                 tableBackground = Color.Transparent
             ),
@@ -354,21 +357,21 @@ fun BouncingDotsIndicator() {
                 .offset(y = dot1Offset.dp)
                 .size(6.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFA1A1AA))
+                .background(VelocityColors.TextMuted)
         )
         Box(
             modifier = Modifier
                 .offset(y = dot2Offset.dp)
                 .size(6.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFA1A1AA))
+                .background(VelocityColors.TextMuted)
         )
         Box(
             modifier = Modifier
                 .offset(y = dot3Offset.dp)
                 .size(6.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFA1A1AA))
+                .background(VelocityColors.TextMuted)
         )
     }
 }

@@ -17,6 +17,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.material3.TextButton
@@ -117,6 +119,10 @@ fun MainTimelineScreen(
         onDispose { scrollPositions[sessionId] = Triple(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, followLatest) }
     }
 
+    androidx.activity.compose.BackHandler(enabled = isThread && activeArtifactId == null && !isSettingsOpen && activeSheet == SheetType.NONE && !isModelSheetOpen && !isMenuOpen && selectedMessage == null) {
+        viewModel.switchSession("main")
+    }
+
     activeArtifactId?.let { artifactId ->
         com.velocity.app.ui.components.ArtifactScreen(repository, artifactId) { activeArtifactId = null }
         return
@@ -162,7 +168,7 @@ fun MainTimelineScreen(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF1C1C1E))
+                            .background(VelocityColors.SurfaceCapsule)
                             .clickable {
                                 VelocityHaptics.lightClick(context)
                                 viewModel.switchSession("main", "velocity")
@@ -185,7 +191,7 @@ fun MainTimelineScreen(
                             .align(Alignment.CenterStart)
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF1C1C1E))
+                            .background(VelocityColors.SurfaceCapsule)
                             .clickable {
                                 VelocityHaptics.lightClick(context)
                                 viewModel.loadMessages()
@@ -195,7 +201,7 @@ fun MainTimelineScreen(
                         Icon(
                             painter = painterResource(LucideIcons.Refresh),
                             contentDescription = "Reload",
-                            tint = if (uiState.isLoading) Color(0xFFA1A1AA) else Color.White,
+                            tint = if (uiState.isLoading) VelocityColors.TextMuted else VelocityColors.TextPrimary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -228,7 +234,7 @@ fun MainTimelineScreen(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF1C1C1E))
+                            .background(VelocityColors.SurfaceCapsule)
                             .clickable {
                                 VelocityHaptics.lightClick(context)
                                 isMenuOpen = true
@@ -238,7 +244,7 @@ fun MainTimelineScreen(
                         Icon(
                             painter = painterResource(LucideIcons.Menu),
                             contentDescription = "Menu",
-                            tint = Color.White,
+                            tint = VelocityColors.TextPrimary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -251,7 +257,7 @@ fun MainTimelineScreen(
                         modifier = Modifier
                             .width(210.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xFF1C1C1E))
+                            .background(VelocityColors.SurfaceCapsule)
                     ) {
                         // Return to Main (If currently in a side thread)
                         if (uiState.currentSessionId != "main") {
@@ -262,14 +268,14 @@ fun MainTimelineScreen(
                                         fontFamily = SatoshiFontFamily,
                                         fontWeight = FontWeight.Medium,
                                         fontSize = 14.sp,
-                                        color = Color.White
+                                        color = VelocityColors.TextPrimary
                                     )
                                 },
                                 leadingIcon = {
                                     Icon(
                                         painter = painterResource(LucideIcons.Home),
                                         contentDescription = null,
-                                        tint = Color(0xFF60A5FA),
+                                        tint = VelocityColors.AccentSky,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 },
@@ -289,14 +295,14 @@ fun MainTimelineScreen(
                                     fontFamily = SatoshiFontFamily,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
-                                    color = Color.White
+                                    color = VelocityColors.TextPrimary
                                 )
                             },
                             leadingIcon = {
                                 Icon(
                                     painter = painterResource(LucideIcons.Refresh),
                                     contentDescription = null,
-                                    tint = Color(0xFF38BDF8),
+                                    tint = VelocityColors.AccentSky,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
@@ -314,14 +320,14 @@ fun MainTimelineScreen(
                                     fontFamily = SatoshiFontFamily,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
-                                    color = Color.White
+                                    color = VelocityColors.TextPrimary
                                 )
                             },
                             leadingIcon = {
                                 Icon(
                                     painter = painterResource(LucideIcons.Threads),
                                     contentDescription = null,
-                                    tint = Color(0xFFA78BFA),
+                                    tint = VelocityColors.AccentViolet,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
@@ -340,14 +346,14 @@ fun MainTimelineScreen(
                                     fontFamily = SatoshiFontFamily,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
-                                    color = Color.White
+                                    color = VelocityColors.TextPrimary
                                 )
                             },
                             leadingIcon = {
                                 Icon(
                                     painter = painterResource(LucideIcons.Documents),
                                     contentDescription = null,
-                                    tint = Color(0xFF34D399),
+                                    tint = VelocityColors.AccentEmerald,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
@@ -366,14 +372,14 @@ fun MainTimelineScreen(
                                     fontFamily = SatoshiFontFamily,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
-                                    color = Color.White
+                                    color = VelocityColors.TextPrimary
                                 )
                             },
                             leadingIcon = {
                                 Icon(
                                     painter = painterResource(LucideIcons.Search),
                                     contentDescription = null,
-                                    tint = Color(0xFF60A5FA),
+                                    tint = VelocityColors.AccentSky,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
@@ -392,14 +398,14 @@ fun MainTimelineScreen(
                                     fontFamily = SatoshiFontFamily,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
-                                    color = Color.White
+                                    color = VelocityColors.TextPrimary
                                 )
                             },
                             leadingIcon = {
                                 Icon(
                                     painter = painterResource(LucideIcons.Chronology),
                                     contentDescription = null,
-                                    tint = Color(0xFFC084FC),
+                                    tint = VelocityColors.AccentViolet,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
@@ -413,7 +419,7 @@ fun MainTimelineScreen(
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                             thickness = 0.5.dp,
-                            color = Color(0xFF2E2E32)
+                            color = VelocityColors.SurfaceElevated
                         )
 
                         // 5. Settings (Standalone Apple System Settings)
@@ -424,14 +430,14 @@ fun MainTimelineScreen(
                                     fontFamily = SatoshiFontFamily,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
-                                    color = Color.White
+                                    color = VelocityColors.TextPrimary
                                 )
                             },
                             leadingIcon = {
                                 Icon(
                                     painter = painterResource(LucideIcons.Settings),
                                     contentDescription = null,
-                                    tint = Color(0xFFA1A1AA),
+                                    tint = VelocityColors.TextMuted,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
@@ -449,15 +455,11 @@ fun MainTimelineScreen(
             if (uiState.hasMoreHistory) TextButton(onClick = { viewModel.loadOlderMessages() }, enabled = !uiState.isLoadingOlder && uiState.isBackendOnline) {
                 Text(if (uiState.isLoadingOlder) "Loading older messages…" else "Load older messages")
             }
-            if (!nearBottom && uiState.messages.isNotEmpty()) TextButton(onClick = {
-                followLatest = true
-                coroutineScope.launch { listState.animateScrollToItem(uiState.messages.lastIndex) }
-            }) { Text("Jump to latest") }
+            Box(Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -479,6 +481,24 @@ fun MainTimelineScreen(
                     )
                 }
 
+            }
+
+                if (!nearBottom && uiState.messages.isNotEmpty()) {
+                    FilledIconButton(
+                        onClick = {
+                            followLatest = true
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(uiState.messages.lastIndex)
+                                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.let { last ->
+                                    val overflow = last.offset + last.size - listState.layoutInfo.viewportEndOffset
+                                    if (overflow > 0) listState.scrollBy(overflow.toFloat())
+                                }
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).size(48.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = VelocityColors.SurfaceElevated, contentColor = VelocityColors.TextPrimary)
+                    ) { Icon(painterResource(LucideIcons.ArrowDown), contentDescription = "Jump to latest", modifier = Modifier.size(20.dp)) }
+                }
             }
 
             // Bottom Section: Action Approval + Single Floating Input Capsule (Elevates with IME)

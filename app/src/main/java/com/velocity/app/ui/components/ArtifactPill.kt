@@ -29,7 +29,7 @@ fun ArtifactPill(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFF141416))
+            .background(VelocityColors.SurfaceCard)
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -45,7 +45,7 @@ fun ArtifactPill(
             Icon(
                 painter = painterResource(LucideIcons.Documents),
                 contentDescription = null,
-                tint = Color(0xFF34D399),
+                tint = VelocityColors.AccentEmerald,
                 modifier = Modifier.size(18.dp)
             )
         }

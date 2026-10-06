@@ -29,7 +29,7 @@ fun ThreadPill(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFF141416))
+            .background(VelocityColors.SurfaceCard)
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -45,7 +45,7 @@ fun ThreadPill(
             Icon(
                 painter = painterResource(LucideIcons.Threads),
                 contentDescription = null,
-                tint = Color(0xFFA78BFA),
+                tint = VelocityColors.AccentViolet,
                 modifier = Modifier.size(18.dp)
             )
         }

@@ -41,7 +41,7 @@ fun ActionApprovalCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF141416))
+            .background(VelocityColors.SurfaceCard)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -65,7 +65,7 @@ fun ActionApprovalCard(
                     Icon(
                         painter = painterResource(LucideIcons.Mail),
                         contentDescription = null,
-                        tint = Color(0xFFF59E0B),
+                        tint = VelocityColors.AccentAmber,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -77,14 +77,14 @@ fun ActionApprovalCard(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
-                        color = Color(0xFFF59E0B)
+                        color = VelocityColors.AccentAmber
                     )
                     Text(
                         text = action.actionType.replace('_', ' ').uppercase(),
                         fontFamily = SatoshiFontFamily,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = VelocityColors.TextPrimary
                     )
                 }
             }
@@ -99,7 +99,7 @@ fun ActionApprovalCard(
                     text = "Requires Approval",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFFF59E0B)
+                    color = VelocityColors.AccentAmber
                 )
             }
         }
@@ -109,34 +109,34 @@ fun ActionApprovalCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1C1C1F))
+                .background(VelocityColors.SurfaceCapsule)
                 .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Row {
                 Text(text = "To: ", style = MonoTextStyle, fontSize = 11.sp, color = VelocityColors.TextMuted)
-                Text(text = to, style = MonoTextStyle, fontSize = 11.sp, color = Color.White)
+                Text(text = to, style = MonoTextStyle, fontSize = 11.sp, color = VelocityColors.TextPrimary)
             }
             for ((field, label) in listOf("cc" to "CC", "bcc" to "BCC", "send_at" to "Send at")) {
                 action.parameters[field]?.jsonPrimitive?.contentOrNull?.let { value ->
-                    Text(text = "$label: $value", style = MonoTextStyle, fontSize = 11.sp, color = Color.White)
+                    Text(text = "$label: $value", style = MonoTextStyle, fontSize = 11.sp, color = VelocityColors.TextPrimary)
                 }
             }
             Row {
                 Text(text = "Subject: ", style = MonoTextStyle, fontSize = 11.sp, color = VelocityColors.TextMuted)
-                Text(text = subject, style = MonoTextStyle, fontSize = 11.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = subject, style = MonoTextStyle, fontSize = 11.sp, color = VelocityColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (body.isNotEmpty()) {
                 Text(
                     text = body,
                     style = MonoTextStyle,
                     fontSize = 11.sp,
-                    color = Color(0xFFD4D4D8),
+                    color = VelocityColors.TextSecondary,
                     maxLines = if (expandedBody) Int.MAX_VALUE else 3,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp)
                 )
-                Text(text = if (expandedBody) "Collapse body" else "Read full body", fontSize = 11.sp, color = Color.White, modifier = Modifier.clickable { expandedBody = !expandedBody })
+                Text(text = if (expandedBody) "Collapse body" else "Read full body", fontSize = 11.sp, color = VelocityColors.TextPrimary, modifier = Modifier.clickable { expandedBody = !expandedBody })
             }
         }
 
@@ -166,7 +166,7 @@ fun ActionApprovalCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color.White)
+                    .background(VelocityColors.TextPrimary)
                     .clickable(enabled = enabled) { onApprove() }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
@@ -175,7 +175,7 @@ fun ActionApprovalCard(
                     fontFamily = SatoshiFontFamily,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = VelocityColors.Canvas
                 )
             }
         }
@@ -195,7 +195,7 @@ fun ProposalApprovalCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF18181B))
+            .background(VelocityColors.SurfaceCapsule)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -215,7 +215,7 @@ fun ProposalApprovalCard(
                 Icon(
                     painter = painterResource(LucideIcons.Threads),
                     contentDescription = null,
-                    tint = Color(0xFFA78BFA),
+                    tint = VelocityColors.AccentViolet,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -226,7 +226,7 @@ fun ProposalApprovalCard(
                     fontFamily = SatoshiFontFamily,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = VelocityColors.TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -263,7 +263,7 @@ fun ProposalApprovalCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (enabled) Color.White else Color(0xFF71717A))
+                    .background(if (enabled) VelocityColors.TextPrimary else VelocityColors.TextDim)
                     .clickable(enabled = enabled) { onApprove() }
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
@@ -272,7 +272,7 @@ fun ProposalApprovalCard(
                     fontFamily = SatoshiFontFamily,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = VelocityColors.Canvas
                 )
             }
         }

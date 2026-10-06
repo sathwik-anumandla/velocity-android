@@ -45,7 +45,7 @@ fun InputCapsule(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(26.dp))
-            .background(Color(0xFF161618))
+            .background(VelocityColors.SurfaceInput)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -55,7 +55,7 @@ fun InputCapsule(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF222226))
+                .background(VelocityColors.SurfaceElevated)
                 .clickable {
                     VelocityHaptics.lightClick(context)
                     onOptionsClick?.invoke()
@@ -111,17 +111,17 @@ fun InputCapsule(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(if (enabled || isStreaming) Color.White else Color(0xFF71717A))
+                    .background(if (enabled || isStreaming) VelocityColors.TextPrimary else VelocityColors.TextDim)
                     .clickable(enabled = enabled || isStreaming) {
                         VelocityHaptics.lightClick(context)
                         if (isStreaming) onStop() else onSend()
                     },
                 contentAlignment = Alignment.Center
             ) {
-                if (isStreaming) Box(Modifier.size(12.dp).background(Color.Black, RoundedCornerShape(2.dp))) else Icon(
+                if (isStreaming) Box(Modifier.size(12.dp).background(VelocityColors.Canvas, RoundedCornerShape(2.dp))) else Icon(
                     painter = painterResource(LucideIcons.ArrowUp),
                     contentDescription = "Send",
-                    tint = Color.Black,
+                    tint = VelocityColors.Canvas,
                     modifier = Modifier.size(18.dp)
                 )
             }

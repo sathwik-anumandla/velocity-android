@@ -127,12 +127,18 @@ data class CreateScheduleRequest(
     val prompt: String,
     @SerialName("cron_expression") val cronExpression: String? = null,
     @SerialName("run_at") val runAt: String? = null,
-    @SerialName("session_id") val sessionId: String = "main"
+    @SerialName("session_id") val sessionId: String = "main",
+    val timezone: String = java.time.ZoneId.systemDefault().id
 )
 
 @Serializable
 data class UpdateScheduleRequest(
-    val status: String? = null
+    val status: String? = null,
+    val name: String? = null,
+    val prompt: String? = null,
+    @SerialName("cron_expression") val cronExpression: String? = null,
+    @SerialName("run_at") val runAt: String? = null,
+    val timezone: String? = null
 )
 
 @Serializable

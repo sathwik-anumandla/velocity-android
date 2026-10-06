@@ -88,7 +88,7 @@ fun UsageScreen(repository: ChatRepository, onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("Back") }
+            IconButton(onClick = onBack) { Icon(painterResource(LucideIcons.ChevronLeft), "Back to settings", tint = VelocityColors.TextPrimary, modifier = Modifier.size(22.dp)) }
             Text("Usage", style = MaterialTheme.typography.titleLarge, color = VelocityColors.TextPrimary)
             IconButton(enabled = !busy && !priceDirty, onClick = { refresh() }) {
                 Icon(painterResource(LucideIcons.Refresh), contentDescription = "Refresh usage", tint = if (!busy && !priceDirty) VelocityColors.TextPrimary else VelocityColors.TextDim, modifier = Modifier.size(20.dp))
@@ -128,31 +128,23 @@ fun UsageScreen(repository: ChatRepository, onBack: () -> Unit) {
                     }
                 }
                 period?.let { summary ->
-                    item {
-                        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            UsageStat("Estimated cost", if (summary.unpricedCalls > 0 && summary.costUsd == 0.0) "Unpriced" else usageUsd(summary.costUsd), "Priced model calls only", Modifier.weight(1f).fillMaxHeight())
-                            UsageStat("Total tokens", usageCompact(summary.inputTokens + summary.outputTokens), "${usageCount(summary.inputTokens + summary.outputTokens)} input + output", Modifier.weight(1f).fillMaxHeight())
-                        }
-                    }
-                    item {
-                        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            UsageStat("API calls", usageCount(summary.calls), "Includes model/tool hops", Modifier.weight(1f).fillMaxHeight())
-                            UsageStat("Cache savings", usageUsd(summary.cacheSavingsUsd), "Estimated vs. uncached input", Modifier.weight(1f).fillMaxHeight())
-                        }
-                    }
+                    item { UsageOverview(summary) }
                     if (summary.unpricedCalls > 0 || summary.unreportedCalls > 0 || summary.reservedUsd > 0) item {
                         UsagePanel("Some costs are incomplete") {
                             Text("${summary.unpricedCalls} unpriced calls · ${summary.unreportedCalls} calls without reported usage.", style = MaterialTheme.typography.bodySmall, color = VelocityColors.AccentAmber)
                             if (summary.reservedUsd > 0) Text("Pending / unknown upper estimate: ${usageUsd(summary.reservedUsd)}. Not added to the cost above.", style = MaterialTheme.typography.bodySmall, color = VelocityColors.TextMuted)
                         }
                     }
-                    item { UsageDailyChart(value.daily) }
                     item { UsageTokenMix(summary) }
-                    item { UsageInsight("Cache effectiveness", summary.cacheHitRate, summary.cacheReported > 0, if (summary.cacheReported > 0) "${usageCount(summary.cachedTokens)} cached input tokens · ${usageCount(summary.cacheHitCalls)} cache-hit calls. Rate uses input from ${usageCount(summary.cacheReported)} reporting calls." else "The provider has not reported cache details for this period.", VelocityColors.AccentEmerald) }
-                    item { UsageInsight("Reasoning share", summary.reasoningShare, summary.reasoningReported > 0, if (summary.reasoningReported > 0) "${usageCount(summary.reasoningTokens)} reasoning tokens, already included in output. Share uses output from ${usageCount(summary.reasoningReported)} reporting calls." else "The provider has not reported reasoning details for this period.", VelocityColors.AccentViolet) }
+                    item { UsageDailyChart(value.daily) }
                 }
-                item { UsageBreakdownChart("Models", breakdownNote, breakdown?.byModel ?: value.byModel, true) }
-                item { UsageBreakdownChart("Activity", breakdownNote, breakdown?.bySource ?: value.bySource, false) }
+                item {
+                    var grouping by rememberSaveable { mutableIntStateOf(0) }
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        UsageSegments(listOf("By model", "By activity"), grouping) { grouping = it }
+                        UsageBreakdownChart(if (grouping == 0) "Models" else "Activity", breakdownNote, if (grouping == 0) breakdown?.byModel ?: value.byModel else breakdown?.bySource ?: value.bySource, grouping == 0)
+                    }
+                }
                 item {
                     Column(Modifier.fillMaxWidth().background(VelocityColors.SurfaceCard, RoundedCornerShape(20.dp)).padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(Modifier.fillMaxWidth().clickable { showPrices = !showPrices }.heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {

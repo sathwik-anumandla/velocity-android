@@ -138,14 +138,14 @@ fun PairingScreen(
                 modifier = Modifier
                     .size(54.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF141416)),
+                    .background(VelocityColors.SurfaceCard),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
                         .size(16.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(VelocityColors.TextPrimary)
                 )
             }
 
@@ -174,7 +174,7 @@ fun PairingScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF141416))
+                    .background(VelocityColors.SurfaceCard)
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -183,7 +183,7 @@ fun PairingScreen(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (activeTab == PairingTab.SCAN_QR) Color(0xFF242428) else Color.Transparent)
+                        .background(if (activeTab == PairingTab.SCAN_QR) VelocityColors.SurfaceElevated else Color.Transparent)
                         .clickable {
                             VelocityHaptics.lightClick(context)
                             activeTab = PairingTab.SCAN_QR
@@ -201,13 +201,13 @@ fun PairingScreen(
                         Icon(
                             painter = painterResource(LucideIcons.Qr),
                             contentDescription = null,
-                            tint = if (activeTab == PairingTab.SCAN_QR) Color.White else VelocityColors.TextDim,
+                            tint = if (activeTab == PairingTab.SCAN_QR) VelocityColors.TextPrimary else VelocityColors.TextDim,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "Scan QR",
                             style = VelocityTypography.titleSmall,
-                            color = if (activeTab == PairingTab.SCAN_QR) Color.White else VelocityColors.TextDim
+                            color = if (activeTab == PairingTab.SCAN_QR) VelocityColors.TextPrimary else VelocityColors.TextDim
                         )
                     }
                 }
@@ -217,7 +217,7 @@ fun PairingScreen(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (activeTab == PairingTab.MANUAL) Color(0xFF242428) else Color.Transparent)
+                        .background(if (activeTab == PairingTab.MANUAL) VelocityColors.SurfaceElevated else Color.Transparent)
                         .clickable {
                             VelocityHaptics.lightClick(context)
                             activeTab = PairingTab.MANUAL
@@ -232,13 +232,13 @@ fun PairingScreen(
                         Icon(
                             painter = painterResource(LucideIcons.Settings),
                             contentDescription = null,
-                            tint = if (activeTab == PairingTab.MANUAL) Color.White else VelocityColors.TextDim,
+                            tint = if (activeTab == PairingTab.MANUAL) VelocityColors.TextPrimary else VelocityColors.TextDim,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "Manual",
                             style = VelocityTypography.titleSmall,
-                            color = if (activeTab == PairingTab.MANUAL) Color.White else VelocityColors.TextDim
+                            color = if (activeTab == PairingTab.MANUAL) VelocityColors.TextPrimary else VelocityColors.TextDim
                         )
                     }
                 }
@@ -268,7 +268,7 @@ fun PairingScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(Color(0xFF141416))
+                                .background(VelocityColors.SurfaceCard)
                                 .padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
@@ -289,7 +289,7 @@ fun PairingScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.White)
+                                    .background(VelocityColors.TextPrimary)
                                     .clickable {
                                         VelocityHaptics.lightClick(context)
                                         permissionLauncher.launch(Manifest.permission.CAMERA)
@@ -299,7 +299,7 @@ fun PairingScreen(
                                 Text(
                                     text = "Allow Camera",
                                     style = VelocityTypography.titleSmall,
-                                    color = Color.Black,
+                                    color = VelocityColors.Canvas,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -311,7 +311,7 @@ fun PairingScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFF121214))
+                            .background(VelocityColors.SurfaceCard)
                             .padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
@@ -332,7 +332,7 @@ fun PairingScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF1C1C1E))
+                                    .background(VelocityColors.SurfaceCapsule)
                                     .padding(horizontal = 14.dp, vertical = 12.dp)
                             ) {
                                 BasicTextField(
@@ -364,7 +364,7 @@ fun PairingScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF1C1C1E))
+                                    .background(VelocityColors.SurfaceCapsule)
                                     .padding(horizontal = 14.dp, vertical = 12.dp)
                             ) {
                                 BasicTextField(
@@ -393,7 +393,7 @@ fun PairingScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF1C1C1E))
+                                    .background(VelocityColors.SurfaceCapsule)
                                     .padding(horizontal = 14.dp, vertical = 12.dp)
                             ) {
                                 BasicTextField(
@@ -428,7 +428,7 @@ fun PairingScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF202024))
+                                    .background(VelocityColors.SurfaceCode)
                                     .clickable {
                                         VelocityHaptics.subtleTick(context)
                                         serverUrl = "https://chat.sathwik.work"
@@ -444,7 +444,7 @@ fun PairingScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF202024))
+                                    .background(VelocityColors.SurfaceCode)
                                     .clickable {
                                         VelocityHaptics.subtleTick(context)
                                         serverUrl = "http://10.0.2.2:8000"
@@ -474,14 +474,14 @@ fun PairingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isError) Color(0xFF2A1515) else Color(0xFF141F18))
+                        .background(if (isError) androidx.compose.material3.MaterialTheme.colorScheme.error.copy(alpha = 0.1f) else VelocityColors.AccentEmerald.copy(alpha = 0.1f))
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = statusMessage ?: "",
                         style = VelocityTypography.bodySmall,
-                        color = if (isError) Color(0xFFFF6B6B) else Color(0xFF4ADE80),
+                        color = if (isError) androidx.compose.material3.MaterialTheme.colorScheme.error else VelocityColors.AccentEmerald,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -495,7 +495,7 @@ fun PairingScreen(
                     .fillMaxWidth()
                     .height(50.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White)
+                    .background(VelocityColors.TextPrimary)
                     .clickable(enabled = !isTestingConnection && serverUrl.isNotBlank()) {
                         VelocityHaptics.lightClick(context)
                         val config = ServerConfig(
@@ -511,7 +511,7 @@ fun PairingScreen(
                 if (isTestingConnection) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = Color.Black,
+                        color = VelocityColors.Canvas,
                         strokeWidth = 2.dp
                     )
                 } else {
@@ -522,13 +522,13 @@ fun PairingScreen(
                         Text(
                             text = "Connect",
                             style = VelocityTypography.titleSmall,
-                            color = Color.Black,
+                            color = VelocityColors.Canvas,
                             fontWeight = FontWeight.Bold
                         )
                         Icon(
                             painter = painterResource(LucideIcons.ChevronRight),
                             contentDescription = null,
-                            tint = Color.Black,
+                            tint = VelocityColors.Canvas,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -556,7 +556,7 @@ private fun QrScannerView(
             .fillMaxWidth()
             .height(340.dp)
             .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF0D0D10)),
+            .background(VelocityColors.SurfaceCode),
         contentAlignment = Alignment.Center
     ) {
         AndroidView(
